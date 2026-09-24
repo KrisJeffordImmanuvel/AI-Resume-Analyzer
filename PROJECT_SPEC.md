@@ -143,7 +143,7 @@ These follow directly from the README's promises and should hold in every phase:
 | 1 | Parsing + deterministic extraction/matching/scoring, first end-to-end UI | Done |
 | 2 | Gemini provider layer, AI structured analysis, semantic matching | Done |
 | 3 | Learning roadmap, interview questions, answer feedback | Done |
-| 4 | Resume intelligence, ATS/recruiter view | Not started |
+| 4 | Resume intelligence, ATS/recruiter view | Done |
 | 5 | Career intelligence (role radar, trajectory timeline) | Not started |
 | 6 | External evidence (GitHub, LinkedIn, fairness scan) | Not started |
 | 7 | Job Provider mode | Not started |

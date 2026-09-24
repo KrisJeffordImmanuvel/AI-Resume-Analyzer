@@ -2,6 +2,8 @@ import { useState } from 'react'
 import { CheckCircle2, XCircle, PlusCircle, Info, Sparkles, Cpu, Briefcase, GraduationCap } from 'lucide-react'
 import Roadmap from './Roadmap.jsx'
 import Interview from './Interview.jsx'
+import ResumeQuality from './ResumeQuality.jsx'
+import AtsView from './AtsView.jsx'
 
 const PRIORITY_LABEL = { required: 'Required', standard: 'Mentioned', preferred: 'Nice to have' }
 
@@ -300,6 +302,8 @@ const TABS = [
   ['report', 'Fit report'],
   ['roadmap', 'Learning roadmap'],
   ['interview', 'Mock interview'],
+  ['quality', 'Resume quality'],
+  ['ats', 'ATS view'],
 ]
 
 export default function AnalysisResults({ result }) {
@@ -323,6 +327,8 @@ export default function AnalysisResults({ result }) {
       {tab === 'report' && <FitReport result={result} />}
       {tab === 'roadmap' && <Roadmap analysisId={result.id} />}
       {tab === 'interview' && <Interview analysisId={result.id} />}
+      {tab === 'quality' && <ResumeQuality analysisId={result.id} />}
+      {tab === 'ats' && <AtsView analysisId={result.id} />}
     </div>
   )
 }

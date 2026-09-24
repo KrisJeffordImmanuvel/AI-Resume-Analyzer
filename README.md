@@ -4,15 +4,15 @@ An evidence-grounded resume/job-description analysis platform for job seekers
 and recruiters. See [PROJECT_SPEC.md](PROJECT_SPEC.md) for the full feature map
 and build plan.
 
-> **Status: Phase 3.** Upload a resume (PDF, DOCX or TXT) and a job description
+> **Status: Phase 4.** Upload a resume (PDF, DOCX or TXT) and a job description
 > (pasted text or a .txt file) to get a job-fit score with matched and missing
 > skills, each backed by a verbatim quote. Skills are matched against a curated
 > list of 375 skills (`backend\data\skills.json`). With a Gemini key, AI also
-> extracts a resume profile (experience, education, skills); every AI quote is
-> checked against the resume and dropped if it is not there. Results have three
-> tabs: **Fit report**, **Learning roadmap** (a plan per skill gap with a real
-> YouTube search link) and **Mock interview** (grounded questions and feedback on
-> your typed answers). Optional local semantic matching is off by default.
+> extracts a resume profile; every AI quote is checked against the resume and
+> dropped if it is not there. Results have five tabs: **Fit report**,
+> **Learning roadmap**, **Mock interview**, **Resume quality** (bullet checks and
+> a rewrite workspace that never adds facts) and **ATS view** (raw parse
+> preview, keyword match and a heuristic 6-second scan).
 
 ## Requirements (Windows)
 
@@ -169,6 +169,27 @@ dependency is mocked so tests are deterministic and free to run.
   outcome, mentioning the skill) and no rating.
 - Roadmaps and question sets are saved per analysis; **Regenerate** / **New
   questions** makes a fresh one. Answers and feedback are saved too.
+
+## Resume quality and ATS view
+
+- **Bullet checks** (rule-based, no AI): each bullet (a line starting with -, *,
+  • or 1.) is checked for a number (years like 2021 do not count; written
+  numbers like "two" do), a strong opening verb vs a weak opener such as
+  "Responsible for", length, first-person words and filler phrases.
+- **Rewrite workspace**: click **Rewrite** on a bullet (or paste one) and
+  **Suggest rewrites** for a before/after view. AI suggestions that add a number
+  or a skill not in your bullet or resume are rejected (a notice says why); gaps
+  are shown as highlighted [placeholders] for your real figures. Without AI, a
+  rule-based rewrite fixes weak openers and adds a result placeholder.
+- **ATS view** (heuristic, not any specific ATS product):
+  - *Raw parse preview*: the exact text the app extracted, word count, detected
+    headings, contact details found, and warnings (thin text, missing standard
+    headings, table-like lines).
+  - *Keyword match*: each job-description skill (and repeated or title terms)
+    with whether the exact wording is in the resume and whether the skill is
+    there under different wording (e.g. "JS" for "JavaScript").
+  - *6-second scan*: checks on the top of page one: headline vs job title,
+    job skills visible early, most recent role, and numbers in achievements.
 
 ## Notes
 

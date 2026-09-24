@@ -43,3 +43,23 @@ export async function submitAnswer(questionId, answer) {
   const { data } = await api.post(`/api/interview/questions/${questionId}/answers`, { answer })
   return data
 }
+
+export async function getQuality(analysisId) {
+  const { data } = await api.get(`/api/analyses/${analysisId}/quality`)
+  return data
+}
+
+export async function rewriteBullet(analysisId, bullet) {
+  const { data } = await api.post(`/api/analyses/${analysisId}/rewrites`, { bullet })
+  return data
+}
+
+export async function listRewrites(analysisId) {
+  const { data } = await api.get(`/api/analyses/${analysisId}/rewrites`)
+  return data
+}
+
+export async function getAts(analysisId) {
+  const { data } = await api.get(`/api/analyses/${analysisId}/ats`)
+  return data
+}

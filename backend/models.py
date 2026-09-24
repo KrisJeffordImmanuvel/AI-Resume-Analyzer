@@ -71,3 +71,14 @@ class InterviewAnswer(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     answer: Mapped[str] = mapped_column(Text)
     feedback: Mapped[dict] = mapped_column(JSON)
+
+
+class BulletRewrite(Base):
+    """One bullet sent to the rewrite workspace and the suggestions it got."""
+
+    __tablename__ = "bullet_rewrites"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    analysis_id: Mapped[int] = mapped_column(ForeignKey("analyses.id"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    data: Mapped[dict] = mapped_column(JSON)
