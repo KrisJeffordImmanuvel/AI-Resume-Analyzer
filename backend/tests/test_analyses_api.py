@@ -17,7 +17,9 @@ def test_analyze_pdf_resume_with_pasted_jd(make_client):
 
     assert resp.status_code == 201, resp.text
     body = resp.json()
-    assert body["method"] == "deterministic"
+    assert body["sources"]["extraction"] == "fallback"
+    assert body["sources"]["fallback_reason"] == "no_api_key"
+    assert body["sources"]["semantic"] == "disabled"
     assert body["jd_source"] == "paste"
     assert [m["skill"] for m in body["matched"]] == ["Python"]
     assert {m["skill"] for m in body["missing"]} == {"Kubernetes", "Terraform"}
@@ -87,3 +89,106 @@ def test_created_at_is_reported_in_utc(make_client):
         fetched = client.get(f"/api/analyses/{created['id']}").json()
     assert created["created_at"].endswith(("Z", "+00:00"))
     assert fetched["created_at"] == created["created_at"]
+
+
+# ---- Phase 2: AI, fallback and semantic paths through the API -----------------
+
+from ai_provider import AIError  # noqa: E402
+from tests.conftest import FakeEmbedder, FakeProvider  # noqa: E402
+
+RESUME_TXT = (SAMPLES / "sample_resume.txt").read_bytes()
+JD_TXT = (SAMPLES / "sample_job_description.txt").read_bytes()
+SAMPLE_FILES = {"resume": ("r.txt", RESUME_TXT), "jd_file": ("jd.txt", JD_TXT)}
+
+
+def test_ai_profile_is_used_and_labelled(make_client):
+    provider = FakeProvider({
+        "skills": [
+            {"name": "CI/CD", "quote": "deployed them to AWS using GitHub Actions"},
+            {"name": "Kubernetes", "quote": "Managed Kubernetes clusters"},  # not in resume
+        ],
+        "experience": [],
+        "education": [],
+    })
+    with make_client(api_key="placeholder", provider=provider) as client:
+        body = post(client, SAMPLE_FILES).json()
+
+    assert body["sources"]["extraction"] == "ai"
+    assert body["sources"]["model"] == "fake:fake-model"
+    assert body["profile"]["discarded"] == 1
+    assert any("discarded" in n for n in body["sources"]["notices"])
+    cicd = next(m for m in body["matched"] if m["skill"] == "CI/CD")
+    assert cicd["match_type"] == "ai_inferred"
+    assert cicd["credit"] == 0.5
+    assert "Kubernetes" in [m["skill"] for m in body["missing"]]
+
+
+def test_ai_failure_still_returns_a_labelled_fallback_result(make_client):
+    provider = FakeProvider(error=AIError("429 quota exceeded"))
+    with make_client(api_key="placeholder", provider=provider) as client:
+        resp = post(client, SAMPLE_FILES)
+
+    assert resp.status_code == 201
+    sources = resp.json()["sources"]
+    assert sources["extraction"] == "fallback"
+    assert sources["fallback_reason"] == "provider_error"
+    assert any("429 quota exceeded" in n for n in sources["notices"])
+
+
+def test_demo_mode_is_reported_in_notices(make_client):
+    with make_client(api_key="placeholder", demo_mode="true") as client:
+        sources = post(client, SAMPLE_FILES).json()["sources"]
+    assert sources["fallback_reason"] == "demo_mode"
+    assert "DEMO_MODE" in sources["notices"][0]
+
+
+def test_semantic_match_through_the_api(make_client):
+    embedder = FakeEmbedder({"CI/CD": [1, 0], "GitHub Actions": [0.8, 0.6]})
+    with make_client(embedder=embedder) as client:
+        body = post(client, SAMPLE_FILES).json()
+
+    assert body["sources"]["semantic"] == "enabled"
+    cicd = next(m for m in body["matched"] if m["skill"] == "CI/CD")
+    assert cicd["match_type"] == "semantic"
+    assert cicd["resume_evidence"][0]["similarity"] == 0.8
+    assert cicd["resume_evidence"][0]["quote"] in RESUME_TXT.decode()
+
+
+def test_semantic_model_failure_is_reported_not_fatal(make_client):
+    from semantic import EmbedderUnavailable
+
+    embedder = FakeEmbedder(error=EmbedderUnavailable("model download failed"))
+    with make_client(embedder=embedder) as client:
+        resp = post(client, SAMPLE_FILES)
+    assert resp.status_code == 201
+    sources = resp.json()["sources"]
+    assert sources["semantic"] == "unavailable"
+    assert any("model download failed" in n for n in sources["notices"])
+
+
+def test_phase1_results_saved_earlier_still_load(make_client):
+    from models import Analysis
+
+    legacy = {
+        "method": "deterministic",
+        "score": {"value": 50, "label": "x", "matched_weight": 3, "total_weight": 6,
+                  "breakdown": [{"priority": "required", "weight": 3, "matched": 1, "total": 2}]},
+        "matched": [{"skill": "Python", "category": "c", "priority": "required", "match_type": "exact",
+                     "resume_evidence": [{"quote": "Python", "term": "Python", "term_offset": 0}],
+                     "jd_evidence": [{"quote": "Python", "term": "Python", "term_offset": 0}]}],
+        "missing": [], "additional": [], "warnings": [],
+    }
+    with make_client() as client:
+        session = client.app.state.session_factory()
+        row = Analysis(resume_filename="old.txt", resume_text="Python", jd_source="paste",
+                       jd_filename=None, jd_text="Python", score=50, result=legacy)
+        session.add(row)
+        session.commit()
+        resp = client.get(f"/api/analyses/{row.id}")
+        session.close()
+
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["sources"]["extraction"] == "fallback"
+    assert body["matched"][0]["credit"] == 1.0
+    assert body["profile"]["skills"] == []

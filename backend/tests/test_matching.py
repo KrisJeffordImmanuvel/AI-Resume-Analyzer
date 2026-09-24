@@ -96,3 +96,46 @@ def test_every_quote_is_verbatim_source_text(name):
         for ev in item["jd_evidence"]:
             assert ev["quote"] in jd
             assert ev["quote"][ev["term_offset"]:].startswith(ev["term"])
+
+
+def test_ai_inferred_evidence_earns_half_credit():
+    ev = {"quote": "deployed with GitHub Actions", "term": None, "term_offset": None, "similarity": None}
+    result = analyze("deployed with GitHub Actions", "Requirements:\n- CI/CD\n- Python", ai_skills={"CI/CD": ev})
+    [match] = result["matched"]
+    assert (match["skill"], match["match_type"], match["credit"]) == ("CI/CD", "ai_inferred", 0.5)
+    assert result["score"]["matched_weight"] == 1.5
+    assert result["score"]["value"] == 25  # 1.5 of 6
+    required = result["score"]["breakdown"][0]
+    assert (required["matched"], required["related"], required["total"]) == (0, 1, 2)
+
+
+def test_named_evidence_beats_ai_inferred():
+    ev = {"quote": "x", "term": None, "term_offset": None, "similarity": None}
+    [match] = analyze("I write Python", "Need Python", ai_skills={"Python": ev})["matched"]
+    assert match["match_type"] == "exact"
+    assert match["credit"] == 1.0
+
+
+def test_semantic_matcher_only_sees_still_missing_skills():
+    seen = []
+
+    def semantic(names):
+        seen.extend(names)
+        return {"Kubernetes": ("Ran container clusters", 0.71)}
+
+    result = analyze("Python developer", "Need Python, Kubernetes and Terraform", semantic=semantic)
+    assert sorted(seen) == ["Kubernetes", "Terraform"]
+    semantic_match = next(m for m in result["matched"] if m["match_type"] == "semantic")
+    assert semantic_match["skill"] == "Kubernetes"
+    assert semantic_match["resume_evidence"][0] == {
+        "quote": "Ran container clusters", "term": None, "term_offset": None, "similarity": 0.71,
+    }
+    assert [m["skill"] for m in result["missing"]] == ["Terraform"]
+    # Python 2 + Kubernetes 1 (half of 2) out of 6.
+    assert result["score"]["value"] == 50
+
+
+def test_named_matches_are_listed_before_related_ones():
+    ev = {"quote": "x", "term": None, "term_offset": None, "similarity": None}
+    result = analyze("Python", "Requirements: CI/CD\nNice to have: Python", ai_skills={"CI/CD": ev})
+    assert [m["match_type"] for m in result["matched"]] == ["exact", "ai_inferred"]

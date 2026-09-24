@@ -1,10 +1,16 @@
-"""Deterministic JD↔resume matching and priority-weighted job-fit scoring.
+"""JD↔resume matching and priority-weighted job-fit scoring.
 
 This is the single analysis engine. Job Seeker and (later) Job Provider flows
 both call analyze(); there is no other scoring path.
+
+Evidence strength, strongest first:
+- exact / literal: the skill is named in the resume (full credit)
+- ai_inferred: a verified resume quote that AI judged to show the skill (half credit)
+- semantic: the most similar resume line by local embeddings (half credit)
 """
 
 import re
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from skills import Mention, find_mentions, group_by_skill, skill_index
@@ -13,6 +19,10 @@ SCORE_LABEL = "Application-generated estimate, not an official ATS or hiring dec
 MAX_QUOTES_PER_SKILL = 3
 
 PRIORITY_WEIGHTS = {"required": 3, "standard": 2, "preferred": 1}
+RELATED_CREDIT = 0.5  # share of a skill's weight earned by ai_inferred / semantic evidence
+
+# Given the names of still-missing JD skills, return {skill: (resume_quote, similarity)}.
+SemanticMatcher = Callable[[list[str]], dict[str, tuple[str, float]]]
 _PRIORITY_RANK = {"preferred": 0, "standard": 1, "required": 2}
 
 # Checked before the required keywords: "Preferred qualifications" is preferred,
@@ -88,30 +98,34 @@ def _evidence(mentions: list[Mention]) -> list[dict]:
         if m.quote in seen:
             continue
         seen.add(m.quote)
-        out.append({"quote": m.quote, "term": m.term, "term_offset": m.term_offset})
+        out.append({"quote": m.quote, "term": m.term, "term_offset": m.term_offset, "similarity": None})
         if len(out) == MAX_QUOTES_PER_SKILL:
             break
     return out
 
 
-def analyze(resume_text: str, jd_text: str) -> dict:
-    """Compare a resume to a JD. Pure function: same input, same output."""
+def analyze(
+    resume_text: str,
+    jd_text: str,
+    *,
+    ai_skills: dict[str, dict] | None = None,
+    semantic: SemanticMatcher | None = None,
+) -> dict:
+    """Compare a resume to a JD. Same inputs (and same helpers) give the same output.
+
+    ai_skills maps taxonomy skill names to one verified resume evidence dict.
+    """
+    ai_skills = ai_skills or {}
     index = skill_index()
     resume_skills = group_by_skill(find_mentions(resume_text))
     jd_skills = group_by_skill(find_mentions(jd_text))
     line_infos = classify_jd_lines(jd_text)
 
-    matched, missing = [], []
-    breakdown = {p: {"priority": p, "weight": w, "matched": 0, "total": 0} for p, w in PRIORITY_WEIGHTS.items()}
-    matched_weight = total_weight = 0
-
+    matched, unmatched = [], []
     for name, jd_mentions in jd_skills.items():
         priority = max(
             (_priority_at(line_infos, m.start) for m in jd_mentions), key=_PRIORITY_RANK.__getitem__
         )
-        weight = PRIORITY_WEIGHTS[priority]
-        total_weight += weight
-        breakdown[priority]["total"] += 1
         base = {
             "skill": name,
             "category": index[name].category,
@@ -122,15 +136,43 @@ def analyze(resume_text: str, jd_text: str) -> dict:
         if resume_mentions:
             jd_terms = {m.term.lower() for m in jd_mentions}
             same_wording = any(m.term.lower() in jd_terms for m in resume_mentions)
-            matched_weight += weight
-            breakdown[priority]["matched"] += 1
             matched.append({
                 **base,
                 "match_type": "exact" if same_wording else "literal",
+                "credit": 1.0,
                 "resume_evidence": _evidence(resume_mentions),
             })
+        elif name in ai_skills:
+            matched.append({**base, "match_type": "ai_inferred", "credit": RELATED_CREDIT,
+                            "resume_evidence": [ai_skills[name]]})
         else:
-            missing.append(base)
+            unmatched.append(base)
+
+    missing = unmatched
+    if semantic and unmatched:
+        found = semantic([item["skill"] for item in unmatched])
+        missing = []
+        for item in unmatched:
+            if item["skill"] in found:
+                quote, similarity = found[item["skill"]]
+                evidence = {"quote": quote, "term": None, "term_offset": None, "similarity": similarity}
+                matched.append({**item, "match_type": "semantic", "credit": RELATED_CREDIT,
+                                "resume_evidence": [evidence]})
+            else:
+                missing.append(item)
+
+    breakdown = {p: {"priority": p, "weight": w, "matched": 0, "related": 0, "total": 0}
+                 for p, w in PRIORITY_WEIGHTS.items()}
+    matched_weight = 0.0
+    total_weight = 0
+    for item in matched + missing:
+        weight = PRIORITY_WEIGHTS[item["priority"]]
+        total_weight += weight
+        breakdown[item["priority"]]["total"] += 1
+    for item in matched:
+        matched_weight += PRIORITY_WEIGHTS[item["priority"]] * item["credit"]
+        key = "matched" if item["credit"] == 1.0 else "related"
+        breakdown[item["priority"]][key] += 1
 
     additional = [
         {"skill": name, "category": index[name].category, "resume_evidence": _evidence(mentions)}
@@ -138,9 +180,9 @@ def analyze(resume_text: str, jd_text: str) -> dict:
         if name not in jd_skills
     ]
 
-    order = lambda item: (-_PRIORITY_RANK[item["priority"]], item["skill"].lower())  # noqa: E731
-    matched.sort(key=order)
-    missing.sort(key=order)
+    strength = {"exact": 0, "literal": 0, "ai_inferred": 1, "semantic": 2}
+    matched.sort(key=lambda i: (strength[i["match_type"]], -_PRIORITY_RANK[i["priority"]], i["skill"].lower()))
+    missing.sort(key=lambda i: (-_PRIORITY_RANK[i["priority"]], i["skill"].lower()))
     additional.sort(key=lambda item: (item["category"], item["skill"].lower()))
 
     warnings = []
@@ -153,11 +195,10 @@ def analyze(resume_text: str, jd_text: str) -> dict:
 
     value = round(100 * matched_weight / total_weight) if total_weight else None
     return {
-        "method": "deterministic",
         "score": {
             "value": value,
             "label": SCORE_LABEL,
-            "matched_weight": matched_weight,
+            "matched_weight": round(matched_weight, 2),
             "total_weight": total_weight,
             "breakdown": [breakdown[p] for p in ("required", "standard", "preferred")],
         },

@@ -11,7 +11,7 @@ from database import check_db, init_db, make_engine, make_session_factory
 from routers import analyses
 from schemas import HealthResponse
 
-APP_VERSION = "0.2.0"
+APP_VERSION = "0.3.0"
 
 
 @asynccontextmanager
@@ -50,4 +50,6 @@ def health(request: Request) -> HealthResponse:
         ai_mode="live" if settings.ai_enabled else "fallback",
         fallback_reason=settings.fallback_reason,
         database="ok" if check_db(request.app.state.engine) else "error",
+        ai_model=settings.gemini_model if settings.ai_enabled else None,
+        semantic_matching="enabled" if settings.semantic_matching else "disabled",
     )

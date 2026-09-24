@@ -140,3 +140,16 @@ details .quote { margin-top: 6px; }
   .score__main { flex-direction: column; align-items: flex-start; gap: 8px; }
   .row { grid-template-columns: 20px 80px 1fr; }
 }
+
+/* ---- Phase 2 ---- */
+.form__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.form__actions .muted { margin: 0; }
+.sources { font-size: 0.9rem; display: grid; gap: 6px; }
+.sources__row { display: flex; gap: 8px; align-items: flex-start; }
+.sources__row svg { flex-shrink: 0; margin-top: 2px; color: var(--muted); }
+.notices { margin: 4px 0 0; padding: 8px 12px 8px 28px; background: var(--warn-bg); color: var(--warn); border-radius: 6px; }
+.notices li + li { margin-top: 4px; }
+.badge--related { border-style: dashed; }
+.quote__meta { color: var(--muted); font-size: 0.8rem; white-space: nowrap; }
+.subhead { display: flex; align-items: center; gap: 6px; font-size: 0.95rem; margin: 16px 0 4px; }
+.section-title .badge { margin-left: 4px; }

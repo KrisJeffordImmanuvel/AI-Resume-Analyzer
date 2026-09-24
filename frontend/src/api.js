@@ -2,7 +2,9 @@ import axios from 'axios'
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
-export const api = axios.create({ baseURL: API_BASE_URL, timeout: 60000 })
+// Generous timeout: an analysis may wait on Gemini and, the first time, on the
+// semantic model download.
+export const api = axios.create({ baseURL: API_BASE_URL, timeout: 300000 })
 
 export async function getHealth() {
   const { data } = await api.get('/health', { timeout: 10000 })

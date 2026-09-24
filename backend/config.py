@@ -20,6 +20,11 @@ class Settings:
     demo_mode: bool
     database_url: str
     cors_origins: list[str]
+    gemini_model: str
+    ai_timeout_seconds: float
+    semantic_matching: bool
+    semantic_model: str
+    semantic_threshold: float
 
     @property
     def has_api_key(self) -> bool:
@@ -39,6 +44,13 @@ class Settings:
         return None
 
 
+def _float(name: str, default: float) -> float:
+    try:
+        return float(os.getenv(name, "").strip() or default)
+    except ValueError:
+        return default
+
+
 def get_settings() -> Settings:
     """Read settings fresh from the environment on every call."""
     default_db = f"sqlite:///{(BACKEND_DIR / 'app.db').as_posix()}"
@@ -48,4 +60,9 @@ def get_settings() -> Settings:
         demo_mode=os.getenv("DEMO_MODE", "false").strip().lower() in _TRUE_VALUES,
         database_url=os.getenv("DATABASE_URL", "").strip() or default_db,
         cors_origins=[o.strip() for o in origins.split(",") if o.strip()],
+        gemini_model=os.getenv("GEMINI_MODEL", "").strip() or "gemini-2.5-flash",
+        ai_timeout_seconds=_float("AI_TIMEOUT_SECONDS", 60.0),
+        semantic_matching=os.getenv("SEMANTIC_MATCHING", "true").strip().lower() in _TRUE_VALUES,
+        semantic_model=os.getenv("SEMANTIC_MODEL", "").strip() or "sentence-transformers/all-MiniLM-L6-v2",
+        semantic_threshold=_float("SEMANTIC_THRESHOLD", 0.6),
     )

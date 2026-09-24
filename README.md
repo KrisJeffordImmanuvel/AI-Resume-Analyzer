@@ -4,10 +4,14 @@ An evidence-grounded resume/job-description analysis platform for job seekers
 and recruiters. See [PROJECT_SPEC.md](PROJECT_SPEC.md) for the full feature map
 and build plan.
 
-> **Status: Phase 1.** Upload a resume (PDF, DOCX or TXT) and a job description
+> **Status: Phase 2.** Upload a resume (PDF, DOCX or TXT) and a job description
 > (pasted text or a .txt file) to get a job-fit score with matched and missing
-> skills, each backed by a verbatim quote. Matching is deterministic (no AI yet)
-> against a curated list of 375 skills in `backend\data\skills.json`.
+> skills, each backed by a verbatim quote. Skills are matched against a curated
+> list of 375 skills (`backend\data\skills.json`). With a Gemini key, AI also
+> extracts a resume profile (experience, education, skills); every AI quote is
+> checked against the resume and dropped if it is not there. Local semantic
+> matching (Sentence Transformers) finds related evidence for skills the resume
+> does not name.
 
 ## Requirements (Windows)
 
@@ -34,6 +38,9 @@ this system"), run this once and then try activating again:
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 ```
 
+The first `pip install` also downloads PyTorch for semantic matching, which is
+large (a few hundred MB) and can take several minutes.
+
 Edit `backend\.env` (for example `notepad .env`) and fill in `GOOGLE_API_KEY`
 (get one free, no billing required, at https://aistudio.google.com/apikey) to
 enable live AI features. Leaving it blank, or setting `DEMO_MODE=true`, runs the
@@ -46,6 +53,19 @@ uvicorn main:app --reload
 
 The API serves at `http://localhost:8000`; `/health` reports whether AI is
 configured.
+
+### Check AI and semantic matching
+
+With the venv active, from the `backend` folder:
+
+```powershell
+python check_ai.py
+```
+
+This makes one small real Gemini request (if a key is set) and loads the
+semantic model, downloading it (~90 MB) the first time. It ends with
+`All checks passed.` or explains what failed. Restart uvicorn after changing
+`backend\.env`; the backend reads it only at startup.
 
 ## Frontend
 
@@ -67,8 +87,10 @@ The `samples` folder has a fictional resume and job description:
 1. Under **Resume**, click **Choose File** and pick `samples\sample_resume.txt`.
 2. Under **Job description**, click **Upload .txt** and pick
    `samples\sample_job_description.txt` (or paste its text into the box).
-3. Click **Analyze**. You should see a score of **69/100**, 8 matched skills,
-   5 missing skills and 18 other resume skills.
+3. Click **Analyze**. Without AI or semantic matching you should see a score of
+   **69/100**, 8 matched skills, 5 missing skills and 18 other resume skills.
+   With them on, the score can be higher: related evidence (for example GitHub
+   Actions for CI/CD) earns half credit.
 
 To check that the frontend builds cleanly:
 
@@ -95,8 +117,17 @@ dependency is mocked so tests are deterministic and free to run.
   "Bonus" or on lines saying "is a plus"; **Mentioned** (weight 2) everywhere
   else.
 - Score = matched weight ÷ total weight × 100.
-- **Exact** means both documents use the same wording; **Literal** means the
-  same skill in different wording (for example "JS" and "JavaScript").
+- Match types and credit:
+  - **Exact** (full credit): both documents use the same wording.
+  - **Literal** (full credit): same skill, different wording ("JS" and "JavaScript").
+  - **AI-inferred** (half credit): AI judged a resume quote to show the skill
+    (for example "deployed with GitHub Actions" for CI/CD). The quote is verified.
+  - **Semantic** (half credit): the most similar resume line by local embeddings,
+    at or above `SEMANTIC_THRESHOLD` (default 0.6). The similarity is shown.
+- AI output is never trusted as-is: items whose quotes are not in the resume
+  are discarded, and titles/employers/dates not in their quote are removed.
+- If AI or the semantic model is unavailable, the result says so and uses the
+  pattern-based fallback; the analysis never fails because of it.
 - Text inside links and email addresses is never counted as evidence.
 - If the job description has no recognizable skills, no score is given.
 

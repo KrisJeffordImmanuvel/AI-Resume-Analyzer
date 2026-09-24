@@ -99,10 +99,15 @@ export default function AnalyzeForm({ onResult }) {
         </p>
       )}
 
-      <button type="submit" className="primary" disabled={!canSubmit}>
-        {busy ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <Search size={16} aria-hidden="true" />}
-        {busy ? 'Analyzing…' : 'Analyze'}
-      </button>
+      <div className="form__actions">
+        <button type="submit" className="primary" disabled={!canSubmit}>
+          {busy ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <Search size={16} aria-hidden="true" />}
+          {busy ? 'Analyzing…' : 'Analyze'}
+        </button>
+        {busy && (
+          <span className="muted">This can take up to a minute with AI on, longer the first time while the semantic model downloads.</span>
+        )}
+      </div>
     </form>
   )
 }

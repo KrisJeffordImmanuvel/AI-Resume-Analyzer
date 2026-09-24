@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { CheckCircle2, AlertTriangle, XCircle, RefreshCw, Sparkles, Database } from 'lucide-react'
+import { CheckCircle2, AlertTriangle, XCircle, RefreshCw, Sparkles, Database, Network } from 'lucide-react'
 import { API_BASE_URL, getHealth } from './api.js'
 
 const FALLBACK_REASONS = {
@@ -70,7 +70,18 @@ export default function HealthStatus() {
             tone={aiLive ? 'good' : 'warn'}
             label="AI"
             value={aiLive ? 'Live (Gemini configured)' : 'Fallback mode'}
-            hint={aiLive ? null : FALLBACK_REASONS[health.fallback_reason]}
+            hint={aiLive ? `Model: ${health.ai_model}` : FALLBACK_REASONS[health.fallback_reason]}
+          />
+          <Row
+            icon={Network}
+            tone={health.semantic_matching === 'enabled' ? 'good' : 'warn'}
+            label="Semantic"
+            value={health.semantic_matching === 'enabled' ? 'Enabled' : 'Off'}
+            hint={
+              health.semantic_matching === 'enabled'
+                ? 'The model downloads on the first analysis (~90 MB).'
+                : 'SEMANTIC_MATCHING=false in backend\\.env'
+            }
           />
         </>
       )}
