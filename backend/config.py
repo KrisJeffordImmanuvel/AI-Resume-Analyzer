@@ -62,7 +62,9 @@ def get_settings() -> Settings:
         cors_origins=[o.strip() for o in origins.split(",") if o.strip()],
         gemini_model=os.getenv("GEMINI_MODEL", "").strip() or "gemini-3.6-flash",
         ai_timeout_seconds=_float("AI_TIMEOUT_SECONDS", 60.0),
-        semantic_matching=os.getenv("SEMANTIC_MATCHING", "true").strip().lower() in _TRUE_VALUES,
+        # Off by default: calibration showed all-MiniLM-L6-v2 cannot separate related
+        # from unrelated resume lines well enough to award credit (see README).
+        semantic_matching=os.getenv("SEMANTIC_MATCHING", "false").strip().lower() in _TRUE_VALUES,
         semantic_model=os.getenv("SEMANTIC_MODEL", "").strip() or "sentence-transformers/all-MiniLM-L6-v2",
         semantic_threshold=_float("SEMANTIC_THRESHOLD", 0.6),
     )

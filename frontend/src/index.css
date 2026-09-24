@@ -153,3 +153,4 @@ details .quote { margin-top: 6px; }
 .quote__meta { color: var(--muted); font-size: 0.8rem; white-space: nowrap; }
 .subhead { display: flex; align-items: center; gap: 6px; font-size: 0.95rem; margin: 16px 0 4px; }
 .section-title .badge { margin-left: 4px; }
+.row--neutral svg { color: var(--muted); }

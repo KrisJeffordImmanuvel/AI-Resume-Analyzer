@@ -9,9 +9,8 @@ and build plan.
 > skills, each backed by a verbatim quote. Skills are matched against a curated
 > list of 375 skills (`backend\data\skills.json`). With a Gemini key, AI also
 > extracts a resume profile (experience, education, skills); every AI quote is
-> checked against the resume and dropped if it is not there. Local semantic
-> matching (Sentence Transformers) finds related evidence for skills the resume
-> does not name.
+> checked against the resume and dropped if it is not there. Optional local
+> semantic matching (Sentence Transformers) is included but off by default.
 
 ## Requirements (Windows)
 
@@ -38,8 +37,8 @@ this system"), run this once and then try activating again:
 Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
 ```
 
-The first `pip install` also downloads PyTorch for semantic matching, which is
-large (a few hundred MB) and can take several minutes.
+The first `pip install` also downloads PyTorch (for the optional semantic
+matching), which is large (a few hundred MB) and can take several minutes.
 
 Edit `backend\.env` (for example `notepad .env`) and fill in `GOOGLE_API_KEY`
 (get one free, no billing required, at https://aistudio.google.com/apikey) to
@@ -62,8 +61,9 @@ With the venv active, from the `backend` folder:
 python check_ai.py
 ```
 
-This makes one small real Gemini request (if a key is set) and loads the
-semantic model, downloading it (~90 MB) the first time. It ends with
+This makes one small real Gemini request (if a key is set) and, if semantic
+matching is on, loads the semantic model (downloading ~90 MB the first time)
+and prints a calibration table. It ends with
 `All checks passed.` or explains what failed. Restart uvicorn after changing
 `backend\.env`; the backend reads it only at startup.
 
@@ -89,8 +89,8 @@ The `samples` folder has a fictional resume and job description:
    `samples\sample_job_description.txt` (or paste its text into the box).
 3. Click **Analyze**. Without AI or semantic matching you should see a score of
    **69/100**, 8 matched skills, 5 missing skills and 18 other resume skills.
-   With them on, the score can be higher: related evidence (for example GitHub
-   Actions for CI/CD) earns half credit.
+   With a Gemini key, the score can be higher: AI-inferred evidence (for
+   example GitHub Actions for CI/CD) earns half credit.
 
 To check that the frontend builds cleanly:
 
@@ -122,8 +122,15 @@ dependency is mocked so tests are deterministic and free to run.
   - **Literal** (full credit): same skill, different wording ("JS" and "JavaScript").
   - **AI-inferred** (half credit): AI judged a resume quote to show the skill
     (for example "deployed with GitHub Actions" for CI/CD). The quote is verified.
-  - **Semantic** (half credit): the most similar resume line by local embeddings,
-    at or above `SEMANTIC_THRESHOLD` (default 0.6). The similarity is shown.
+  - **Semantic** (half credit, off by default): the most similar resume line by
+    local embeddings, at or above `SEMANTIC_THRESHOLD` (default 0.6). The
+    similarity is shown.
+- Why semantic matching is off by default: on the sample files, the default
+  model (all-MiniLM-L6-v2) matched every skill the resume does not name to a
+  wrong line (best wrong match 0.41, e.g. Terraform to a Docker line), while
+  true matches scored 0.36–0.60. No threshold separates them, so it would
+  either award wrong credit or never fire. AI-inferred evidence covers the
+  useful case (e.g. GitHub Actions for CI/CD) with a verified quote.
 - AI output is never trusted as-is: items whose quotes are not in the resume
   are discarded, and titles/employers/dates not in their quote are removed.
 - If AI or the semantic model is unavailable, the result says so and uses the

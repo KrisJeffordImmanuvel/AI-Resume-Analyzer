@@ -88,3 +88,10 @@ def test_temporary_errors_are_retried_but_permanent_ones_are_not():
     assert retry.attempts == 3
     assert 503 in retry.http_status_codes and 429 in retry.http_status_codes
     assert 400 not in retry.http_status_codes and 404 not in retry.http_status_codes
+
+
+def test_semantic_matching_is_off_unless_enabled(monkeypatch):
+    monkeypatch.delenv("SEMANTIC_MATCHING", raising=False)
+    assert get_settings().semantic_matching is False
+    monkeypatch.setenv("SEMANTIC_MATCHING", "true")
+    assert get_settings().semantic_matching is True

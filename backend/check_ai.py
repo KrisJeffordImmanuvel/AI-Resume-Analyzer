@@ -57,7 +57,7 @@ def check_semantic(settings) -> bool:
     print(f"  Model     : {settings.semantic_model}")
     print(f"  Threshold : {settings.semantic_threshold}")
     if not settings.semantic_matching:
-        print("  SKIPPED: SEMANTIC_MATCHING=false.")
+        print("  SKIPPED: semantic matching is off (the default). Set SEMANTIC_MATCHING=true to test it.")
         return True
     embedder = SentenceTransformerEmbedder(settings.semantic_model)
     query = skill_query("CI/CD")

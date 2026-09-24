@@ -74,13 +74,13 @@ export default function HealthStatus() {
           />
           <Row
             icon={Network}
-            tone={health.semantic_matching === 'enabled' ? 'good' : 'warn'}
+            tone={health.semantic_matching === 'enabled' ? 'good' : 'neutral'}
             label="Semantic"
             value={health.semantic_matching === 'enabled' ? 'Enabled' : 'Off'}
             hint={
               health.semantic_matching === 'enabled'
                 ? 'The model downloads on the first analysis (~90 MB).'
-                : 'SEMANTIC_MATCHING=false in backend\\.env'
+                : 'Off by default. Set SEMANTIC_MATCHING=true in backend\\.env to experiment.'
             }
           />
         </>
