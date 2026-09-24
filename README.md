@@ -4,9 +4,10 @@ An evidence-grounded resume/job-description analysis platform for job seekers
 and recruiters. See [PROJECT_SPEC.md](PROJECT_SPEC.md) for the full feature map
 and build plan.
 
-> **Status: Phase 0 (skeleton).** The backend starts, creates its database and
-> reports its AI status at `/health`. The frontend shows that status. No
-> analysis features yet.
+> **Status: Phase 1.** Upload a resume (PDF, DOCX or TXT) and a job description
+> (pasted text or a .txt file) to get a job-fit score with matched and missing
+> skills, each backed by a verbatim quote. Matching is deterministic (no AI yet)
+> against a curated list of 375 skills in `backend\data\skills.json`.
 
 ## Requirements (Windows)
 
@@ -59,6 +60,16 @@ npm run dev
 
 Open `http://localhost:5173`.
 
+### Try it with the sample files
+
+The `samples` folder has a fictional resume and job description:
+
+1. Under **Resume**, click **Choose File** and pick `samples\sample_resume.txt`.
+2. Under **Job description**, click **Upload .txt** and pick
+   `samples\sample_job_description.txt` (or paste its text into the box).
+3. Click **Analyze**. You should see a score of **69/100**, 8 matched skills,
+   5 missing skills and 18 other resume skills.
+
 To check that the frontend builds cleanly:
 
 ```powershell
@@ -75,6 +86,19 @@ pytest
 
 The test suite never makes live AI or network calls — every AI/network
 dependency is mocked so tests are deterministic and free to run.
+
+## How the score works
+
+- Each skill in the job description gets a priority from the section it
+  appears in: **Required** (weight 3) under headings like "Requirements" or
+  "Must have"; **Nice to have** (weight 1) under "Preferred", "Nice to have",
+  "Bonus" or on lines saying "is a plus"; **Mentioned** (weight 2) everywhere
+  else.
+- Score = matched weight ÷ total weight × 100.
+- **Exact** means both documents use the same wording; **Literal** means the
+  same skill in different wording (for example "JS" and "JavaScript").
+- Text inside links and email addresses is never counted as evidence.
+- If the job description has no recognizable skills, no score is given.
 
 ## Notes
 

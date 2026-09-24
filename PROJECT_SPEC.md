@@ -111,8 +111,8 @@ These follow directly from the README's promises and should hold in every phase:
    user carries a quote that is a substring of the extracted resume text. AI
    output whose quote cannot be located in the source is dropped, not shown.
 2. **Fallback labeling** — every API response that could involve AI includes a
-   field indicating its source (e.g. `"source": "ai" | "fallback"`), and the UI
-   renders a visible label when it is `fallback`.
+   field indicating how it was produced (Phase 1: `"method": "deterministic"`), and the UI
+   shows that label visibly.
 3. **AI gating** — AI is used only when `GOOGLE_API_KEY` is set **and**
    `DEMO_MODE` is not `true`; provider errors fall back per request rather than
    failing the request.
@@ -128,7 +128,7 @@ These follow directly from the README's promises and should hold in every phase:
 
 ## Approved decisions
 
-- Curated skill taxonomy of ~300 skills stored as JSON (fallback extraction and
+- Curated skill taxonomy (375 skills in Phase 1) stored as JSON (fallback extraction and
   validation of AI output).
 - No authentication; single local SQLite database.
 - Frontend verification is a build check only (`npm run build`); no Vitest for now.
@@ -139,7 +139,7 @@ These follow directly from the README's promises and should hold in every phase:
 | Phase | Scope | Status |
 |---|---|---|
 | 0 | Skeleton: FastAPI + SQLite + `/health`, React/Vite status page, env examples | Done |
-| 1 | Parsing + deterministic extraction/matching/scoring, first end-to-end UI | Not started |
+| 1 | Parsing + deterministic extraction/matching/scoring, first end-to-end UI | Done |
 | 2 | Gemini provider layer, AI structured analysis, semantic matching | Not started |
 | 3 | Learning roadmap, interview questions, answer feedback | Not started |
 | 4 | Resume intelligence, ATS/recruiter view | Not started |

@@ -6,10 +6,12 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import get_settings
+import models  # noqa: F401  (registers tables before init_db creates them)
 from database import check_db, init_db, make_engine, make_session_factory
+from routers import analyses
 from schemas import HealthResponse
 
-APP_VERSION = "0.1.0"
+APP_VERSION = "0.2.0"
 
 
 @asynccontextmanager
@@ -33,6 +35,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(analyses.router)
 
 
 @app.get("/health", response_model=HealthResponse)

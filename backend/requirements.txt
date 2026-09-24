@@ -1,10 +1,14 @@
-# Phase 0 dependencies. Parsing, AI and semantic-matching libraries
-# (PyMuPDF, python-docx, google-genai, sentence-transformers) are added
-# in the phases that first use them.
+# AI and semantic-matching libraries (google-genai, sentence-transformers)
+# are added in Phase 2, when they are first used.
 fastapi>=0.115,<1.0
 uvicorn[standard]>=0.30
 sqlalchemy>=2.0,<3.0
 python-dotenv>=1.0
+python-multipart>=0.0.9
+
+# Resume parsing
+pymupdf>=1.24
+python-docx>=1.1
 
 # Testing
 pytest>=8.0
