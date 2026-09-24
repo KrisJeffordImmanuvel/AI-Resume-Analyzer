@@ -12,7 +12,7 @@ export default function App() {
       <p className="subtitle">Upload a resume and a job description to see an evidence-backed fit report.</p>
       <HealthStatus />
       <AnalyzeForm onResult={setResult} />
-      {result && <AnalysisResults result={result} />}
+      {result && <AnalysisResults key={result.id} result={result} />}
     </main>
   )
 }

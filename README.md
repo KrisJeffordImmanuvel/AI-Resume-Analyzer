@@ -4,13 +4,15 @@ An evidence-grounded resume/job-description analysis platform for job seekers
 and recruiters. See [PROJECT_SPEC.md](PROJECT_SPEC.md) for the full feature map
 and build plan.
 
-> **Status: Phase 2.** Upload a resume (PDF, DOCX or TXT) and a job description
+> **Status: Phase 3.** Upload a resume (PDF, DOCX or TXT) and a job description
 > (pasted text or a .txt file) to get a job-fit score with matched and missing
 > skills, each backed by a verbatim quote. Skills are matched against a curated
 > list of 375 skills (`backend\data\skills.json`). With a Gemini key, AI also
 > extracts a resume profile (experience, education, skills); every AI quote is
-> checked against the resume and dropped if it is not there. Optional local
-> semantic matching (Sentence Transformers) is included but off by default.
+> checked against the resume and dropped if it is not there. Results have three
+> tabs: **Fit report**, **Learning roadmap** (a plan per skill gap with a real
+> YouTube search link) and **Mock interview** (grounded questions and feedback on
+> your typed answers). Optional local semantic matching is off by default.
 
 ## Requirements (Windows)
 
@@ -137,6 +139,25 @@ dependency is mocked so tests are deterministic and free to run.
   pattern-based fallback; the analysis never fails because of it.
 - Text inside links and email addresses is never counted as evidence.
 - If the job description has no recognizable skills, no score is given.
+
+## Learning roadmap and mock interview
+
+- **Roadmap**: one entry per missing skill ("Learn") and per skill with only
+  half-credit evidence ("Strengthen"), Required first. Each has study steps, a
+  project idea and a YouTube search link. The link is always built by the app
+  from the skill name, never written by AI. With AI, Gemini writes the steps
+  (labelled AI-generated); without it, category templates are used.
+- **Questions**: questions about your skills, gaps or experience always show
+  the resume or job-description line they are based on. AI questions whose
+  line cannot be found in either document are discarded, so no question rests
+  on an invented premise. Behavioral questions need no source line.
+- **Feedback**: type an answer and click **Get feedback**. With AI you get a
+  1-5 rating (an estimate), strengths, improvements and one follow-up question;
+  any words it quotes from your answer are checked against what you typed.
+  Without AI you get rule-based checks (length, your own actions, numbers,
+  outcome, mentioning the skill) and no rating.
+- Roadmaps and question sets are saved per analysis; **Regenerate** / **New
+  questions** makes a fresh one. Answers and feedback are saved too.
 
 ## Notes
 

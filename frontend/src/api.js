@@ -28,3 +28,18 @@ export function errorMessage(err) {
   if (err?.request && !err?.response) return `Could not reach the backend at ${API_BASE_URL}. Is uvicorn running?`
   return err?.message || 'Something went wrong.'
 }
+
+export async function getRoadmap(analysisId, refresh = false) {
+  const { data } = await api.post(`/api/analyses/${analysisId}/roadmap`, null, { params: { refresh } })
+  return data
+}
+
+export async function getInterview(analysisId, refresh = false) {
+  const { data } = await api.post(`/api/analyses/${analysisId}/interview`, null, { params: { refresh } })
+  return data
+}
+
+export async function submitAnswer(questionId, answer) {
+  const { data } = await api.post(`/api/interview/questions/${questionId}/answers`, { answer })
+  return data
+}

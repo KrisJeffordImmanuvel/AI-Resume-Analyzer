@@ -154,3 +154,33 @@ details .quote { margin-top: 6px; }
 .subhead { display: flex; align-items: center; gap: 6px; font-size: 0.95rem; margin: 16px 0 4px; }
 .section-title .badge { margin-left: 4px; }
 .row--neutral svg { color: var(--muted); }
+
+/* ---- Phase 3 ---- */
+.tabs--results { margin-bottom: 16px; flex-wrap: wrap; }
+.source-note { margin-bottom: 12px; font-size: 0.9rem; }
+.source-note__line { display: flex; gap: 6px; align-items: flex-start; margin: 0; color: var(--muted); }
+.source-note__line svg { flex-shrink: 0; margin-top: 2px; }
+.source-note .notices { margin-top: 8px; }
+.roadmap, .questions { margin: 0; padding: 0; list-style: none; }
+.roadmap__item, .question { padding: 16px 0; border-top: 1px solid var(--border); }
+.roadmap__why { margin: 6px 0 0; overflow-wrap: anywhere; }
+.steps { margin: 10px 0 0; padding-left: 22px; }
+.steps li + li { margin-top: 4px; }
+.project { display: flex; gap: 6px; align-items: flex-start; margin: 10px 0 0; }
+.project svg { flex-shrink: 0; margin-top: 3px; color: var(--muted); }
+.yt { display: inline-flex; align-items: center; gap: 6px; margin-top: 10px; color: var(--accent); font-weight: 600; text-decoration: none; }
+.yt:hover { text-decoration: underline; }
+.question__text { margin: 8px 0 4px; font-weight: 500; }
+.question textarea { margin-top: 8px; }
+.question .form__actions { margin-top: 8px; }
+.question .form__error { margin-top: 8px; }
+.feedback { margin-top: 12px; padding: 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+.feedback p { margin: 0 0 8px; }
+.feedback__title { font-size: 0.85rem; margin: 10px 0 4px; }
+.feedback__title--good { color: var(--good); }
+.feedback__title--bad { color: var(--bad); }
+.feedback__points { margin: 0; padding-left: 20px; }
+.feedback__points li + li { margin-top: 6px; }
+.feedback__points .quote { margin-top: 4px; }
+.feedback__followup { display: flex; gap: 6px; align-items: flex-start; font-weight: 500; margin-top: 10px !important; }
+.feedback__followup svg { flex-shrink: 0; margin-top: 3px; color: var(--accent); }

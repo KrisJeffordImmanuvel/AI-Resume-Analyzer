@@ -1,4 +1,7 @@
+import { useState } from 'react'
 import { CheckCircle2, XCircle, PlusCircle, Info, Sparkles, Cpu, Briefcase, GraduationCap } from 'lucide-react'
+import Roadmap from './Roadmap.jsx'
+import Interview from './Interview.jsx'
 
 const PRIORITY_LABEL = { required: 'Required', standard: 'Mentioned', preferred: 'Nice to have' }
 
@@ -203,10 +206,10 @@ function ProfileSection({ profile, ai }) {
   )
 }
 
-export default function AnalysisResults({ result }) {
+function FitReport({ result }) {
   const ai = result.sources.extraction === 'ai'
   return (
-    <div className="results">
+    <div>
       <SourcesPanel sources={result.sources} />
 
       {result.warnings.map((w) => (
@@ -289,6 +292,37 @@ export default function AnalysisResults({ result }) {
           </li>
         )}
       />
+    </div>
+  )
+}
+
+const TABS = [
+  ['report', 'Fit report'],
+  ['roadmap', 'Learning roadmap'],
+  ['interview', 'Mock interview'],
+]
+
+export default function AnalysisResults({ result }) {
+  const [tab, setTab] = useState('report')
+  return (
+    <div className="results">
+      <div className="tabs tabs--results" role="tablist">
+        {TABS.map(([id, label]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={tab === id}
+            className={tab === id ? 'tab tab--active' : 'tab'}
+            onClick={() => setTab(id)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      {tab === 'report' && <FitReport result={result} />}
+      {tab === 'roadmap' && <Roadmap analysisId={result.id} />}
+      {tab === 'interview' && <Interview analysisId={result.id} />}
     </div>
   )
 }
