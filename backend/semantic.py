@@ -11,7 +11,7 @@ import re
 import threading
 from typing import Protocol
 
-from skills import MAX_QUOTE_CHARS, _URL_OR_EMAIL
+from skills import MAX_QUOTE_CHARS, _URL_OR_EMAIL, skill_index
 
 
 class EmbedderUnavailable(Exception):
@@ -97,6 +97,21 @@ def _cosine(a: list[float], b: list[float]) -> float:
     return dot / (na * nb) if na and nb else 0.0
 
 
+def skill_query(name: str) -> str:
+    """Query text for a skill, with its alternative names for extra context.
+
+    Small embedding models know "continuous integration" far better than "CI/CD".
+    """
+    skill = skill_index().get(name)
+    extras = []
+    if skill:
+        for term in skill.terms + skill.terms_case_sensitive:
+            if term.lower() != name.lower() and term.lower() not in (e.lower() for e in extras):
+                extras.append(term)
+    extras = extras[:4]
+    return f"Experience with {name}" + (f" ({', '.join(extras)})" if extras else "")
+
+
 def best_matches(
     skill_names: list[str], resume_text: str, embedder: Embedder, threshold: float
 ) -> dict[str, tuple[str, float]]:
@@ -104,7 +119,7 @@ def best_matches(
     units = resume_units(resume_text)
     if not skill_names or not units:
         return {}
-    queries = [f"Experience with {name}" for name in skill_names]
+    queries = [skill_query(name) for name in skill_names]
     vectors = embedder.encode(queries + units)
     query_vecs, unit_vecs = vectors[: len(queries)], vectors[len(queries):]
     out = {}

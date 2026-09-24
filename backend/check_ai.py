@@ -9,12 +9,17 @@ semantic model (downloading it the first time). It is NOT part of pytest.
 
 import sys
 import time
+from pathlib import Path
 
 from pydantic import BaseModel
 
 from ai_provider import AIError, make_provider
 from config import get_settings
-from semantic import EmbedderUnavailable, SentenceTransformerEmbedder, _cosine
+from parsing import normalize_text
+from semantic import EmbedderUnavailable, SentenceTransformerEmbedder, _cosine, best_matches, skill_query
+from skills import find_mentions, group_by_skill
+
+SAMPLES = Path(__file__).resolve().parent.parent / "samples"
 
 
 class _Ping(BaseModel):
@@ -55,7 +60,7 @@ def check_semantic(settings) -> bool:
         print("  SKIPPED: SEMANTIC_MATCHING=false.")
         return True
     embedder = SentenceTransformerEmbedder(settings.semantic_model)
-    query = "Experience with CI/CD"
+    query = skill_query("CI/CD")
     lines = [
         "Containerized services with Docker and deployed them to AWS using GitHub Actions.",
         "Mentored two junior engineers and led weekly code reviews.",
@@ -71,7 +76,24 @@ def check_semantic(settings) -> bool:
         sim = _cosine(vectors[0], vec)
         verdict = "MATCH" if sim >= settings.semantic_threshold else "no match"
         print(f"  {sim:.2f} {verdict:8s} '{query}' vs '{line}'")
+    calibrate(embedder, settings.semantic_threshold)
     return True
+
+
+def calibrate(embedder, threshold: float) -> None:
+    """Best resume line for every sample JD skill, to help choose SEMANTIC_THRESHOLD."""
+    resume = normalize_text((SAMPLES / "sample_resume.txt").read_text(encoding="utf-8"))
+    jd = normalize_text((SAMPLES / "sample_job_description.txt").read_text(encoding="utf-8"))
+    named = set(group_by_skill(find_mentions(resume)))
+    skills = sorted(group_by_skill(find_mentions(jd)))
+    best = best_matches(skills, resume, embedder, threshold=-1.0)
+    print("\n== Calibration (sample resume vs sample job description) ==")
+    print("  'named' = the resume names this skill (a true match); 'not named' = it does not.")
+    print(f"  Current threshold: {threshold}\n")
+    rows = sorted(((best[s][1], s, s in named, best[s][0]) for s in skills if s in best), reverse=True)
+    for sim, skill, is_named, line in rows:
+        tag = "named    " if is_named else "not named"
+        print(f"  {sim:.2f}  {tag}  {skill:<14} <- {line[:70]}")
 
 
 if __name__ == "__main__":

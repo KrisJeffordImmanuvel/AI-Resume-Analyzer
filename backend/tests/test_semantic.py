@@ -56,3 +56,13 @@ def test_model_load_failure_reports_unavailable(monkeypatch):
     monkeypatch.setitem(sys.modules, "sentence_transformers", fake_module)
     with pytest.raises(EmbedderUnavailable, match="download"):
         SentenceTransformerEmbedder("any-model").encode(["hello"])
+
+
+def test_queries_include_alternative_names_from_the_skill_list():
+    from semantic import skill_query
+
+    assert skill_query("CI/CD") == (
+        "Experience with CI/CD (cicd, continuous integration, continuous delivery, continuous deployment)"
+    )
+    assert skill_query("Agile") == "Experience with Agile"
+    assert skill_query("Not In List") == "Experience with Not In List"
