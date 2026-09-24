@@ -1,0 +1,20 @@
+Senior Backend Engineer - Example Payments
+
+About the role:
+You will design and build the services that move money for our customers.
+
+Responsibilities:
+- Design, build and operate REST APIs used by millions of users.
+- Work with product managers in an Agile team.
+
+Requirements:
+- 4+ years of professional experience with Python.
+- Strong knowledge of PostgreSQL and SQL.
+- Experience with Docker and Kubernetes.
+- Experience building CI/CD pipelines.
+- Solid understanding of JavaScript for occasional frontend fixes.
+
+Nice to have:
+- Experience with Kafka or RabbitMQ.
+- AWS certification.
+- Familiarity with Terraform.

@@ -1,0 +1,23 @@
+Priya Raman
+Backend Software Engineer | Chennai, India | priya.raman@example.com | https://github.com/example
+
+SUMMARY
+Backend engineer with 4 years of experience building REST APIs and data pipelines in Python.
+
+EXPERIENCE
+Software Engineer, Example Fintech Pvt Ltd (2022 - Present)
+- Built RESTful APIs with FastAPI and PostgreSQL serving 2M requests per day.
+- Containerized services with Docker and deployed them to AWS using GitHub Actions.
+- Cut report generation time by 60% by adding Redis caching.
+- Mentored two junior engineers and led weekly code reviews.
+
+Junior Developer, Sample Retail Co (2020 - 2022)
+- Wrote ETL jobs in Python and Pandas that loaded sales data into a MySQL data warehouse.
+- Built internal dashboards in JS and React.
+- Wrote unit tests with Pytest; raised coverage from 40% to 85%.
+
+SKILLS
+Python, SQL, FastAPI, Django, PostgreSQL, MySQL, Redis, Docker, AWS, Git, Linux, Agile/Scrum
+
+EDUCATION
+B.E. Computer Science, Example Institute of Technology, 2020
