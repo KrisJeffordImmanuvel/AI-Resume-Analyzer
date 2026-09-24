@@ -47,7 +47,8 @@ def run_analysis(
 
     result = analyze(resume_text, jd_text, ai_skills=ai_skills, semantic=semantic if embedder else None)
 
-    if profile["source"] == "fallback":
+    # A provider error already added its own specific notice.
+    if profile["source"] == "fallback" and profile["fallback_reason"] != "provider_error":
         reason = FALLBACK_REASON_TEXT.get(profile["fallback_reason"], "AI is unavailable")
         notices.insert(0, f"AI extraction is off because {reason}. Showing pattern-based results instead.")
     if profile["discarded"]:

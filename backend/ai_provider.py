@@ -35,6 +35,12 @@ def _safe_message(exc: Exception, secret: str) -> str:
     return text[:300]
 
 
+# Temporary errors (rate limit, overload) are retried a couple of times before
+# giving up and falling back; permanent ones (bad key, unknown model) are not.
+RETRY_ATTEMPTS = 3  # including the first request
+RETRY_STATUS_CODES = [429, 500, 502, 503, 504]
+
+
 class GeminiProvider:
     name = "gemini"
 
@@ -45,10 +51,16 @@ class GeminiProvider:
         self._types = types
         self._api_key = api_key
         self.model = model
-        self._client = genai.Client(
-            api_key=api_key,
-            http_options=types.HttpOptions(timeout=int(timeout_seconds * 1000)),  # milliseconds
+        self.http_options = types.HttpOptions(
+            timeout=int(timeout_seconds * 1000),  # milliseconds
+            retry_options=types.HttpRetryOptions(
+                attempts=RETRY_ATTEMPTS,
+                initial_delay=2.0,
+                max_delay=8.0,
+                http_status_codes=RETRY_STATUS_CODES,
+            ),
         )
+        self._client = genai.Client(api_key=api_key, http_options=self.http_options)
 
     def generate_json(self, *, system: str, prompt: str, schema: type[BaseModel]) -> dict:
         try:

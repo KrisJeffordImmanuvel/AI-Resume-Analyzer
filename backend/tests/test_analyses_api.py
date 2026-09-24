@@ -133,6 +133,7 @@ def test_ai_failure_still_returns_a_labelled_fallback_result(make_client):
     assert sources["extraction"] == "fallback"
     assert sources["fallback_reason"] == "provider_error"
     assert any("429 quota exceeded" in n for n in sources["notices"])
+    assert len([n for n in sources["notices"] if "AI" in n]) == 1  # one notice, not two
 
 
 def test_demo_mode_is_reported_in_notices(make_client):

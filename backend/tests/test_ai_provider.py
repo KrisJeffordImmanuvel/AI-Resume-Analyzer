@@ -80,3 +80,11 @@ def test_google_api_errors_are_summarised_in_one_line():
     with pytest.raises(AIError) as err:
         provider_with(FakeModels(error=exc)).generate_json(system="s", prompt="p", schema=AIResumeProfile)
     assert str(err.value) == "400 INVALID_ARGUMENT: API key not valid."
+
+
+def test_temporary_errors_are_retried_but_permanent_ones_are_not():
+    provider = GeminiProvider("k", "gemini-test", timeout_seconds=5)
+    retry = provider.http_options.retry_options
+    assert retry.attempts == 3
+    assert 503 in retry.http_status_codes and 429 in retry.http_status_codes
+    assert 400 not in retry.http_status_codes and 404 not in retry.http_status_codes
