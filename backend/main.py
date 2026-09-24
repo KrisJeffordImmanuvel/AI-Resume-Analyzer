@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from config import get_settings
 from database import check_db, init_db, make_engine, make_session_factory
+from schemas import HealthResponse
 
 APP_VERSION = "0.1.0"
 
@@ -34,15 +35,15 @@ app.add_middleware(
 )
 
 
-@app.get("/health")
-def health(request: Request) -> dict:
+@app.get("/health", response_model=HealthResponse)
+def health(request: Request) -> HealthResponse:
     settings = get_settings()
-    return {
-        "status": "ok",
-        "version": APP_VERSION,
-        "ai_configured": settings.has_api_key,
-        "demo_mode": settings.demo_mode,
-        "ai_mode": "live" if settings.ai_enabled else "fallback",
-        "fallback_reason": settings.fallback_reason,
-        "database": "ok" if check_db(request.app.state.engine) else "error",
-    }
+    return HealthResponse(
+        status="ok",
+        version=APP_VERSION,
+        ai_configured=settings.has_api_key,
+        demo_mode=settings.demo_mode,
+        ai_mode="live" if settings.ai_enabled else "fallback",
+        fallback_reason=settings.fallback_reason,
+        database="ok" if check_db(request.app.state.engine) else "error",
+    )

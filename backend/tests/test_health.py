@@ -41,3 +41,14 @@ def test_cors_allows_vite_dev_server(make_client):
         resp = client.get("/health", headers={"Origin": "http://localhost:5173"})
 
     assert resp.headers.get("access-control-allow-origin") == "http://localhost:5173"
+
+
+def test_openapi_documents_health_fields(make_client):
+    with make_client() as client:
+        schema = client.get("/openapi.json").json()
+
+    ref = schema["paths"]["/health"]["get"]["responses"]["200"]["content"]["application/json"]["schema"]["$ref"]
+    fields = schema["components"]["schemas"][ref.rsplit("/", 1)[-1]]["properties"]
+    assert set(fields) == {
+        "status", "version", "ai_configured", "demo_mode", "ai_mode", "fallback_reason", "database",
+    }
