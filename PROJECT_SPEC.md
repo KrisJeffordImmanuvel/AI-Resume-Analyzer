@@ -30,22 +30,26 @@ guessing — the app never fabricates a fact about a candidate.
 
 ## Setup
 
+> Target platform is **Windows / PowerShell only**. The commands below are the
+> README's setup steps translated to PowerShell; the maintained copy lives in
+> `README.md`.
+
 ### Backend
 
-```bash
+```powershell
 cd backend
-python3 -m venv venv
-source venv/bin/activate        # fish shell: source venv/bin/activate.fish
+python -m venv venv
+.\venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-cp .env.example .env
+Copy-Item .env.example .env
 ```
 
-Edit `backend/.env` and fill in `GOOGLE_API_KEY` (get one free, no billing
+Edit `backend\.env` and fill in `GOOGLE_API_KEY` (get one free, no billing
 required, at https://aistudio.google.com/apikey) to enable live AI features.
 Leaving it blank, or setting `DEMO_MODE=true`, runs the app fully in its
 deterministic fallback mode — useful for development without a key.
 
-```bash
+```powershell
 uvicorn main:app --reload
 ```
 
@@ -54,10 +58,10 @@ configured.
 
 ### Frontend
 
-```bash
+```powershell
 cd frontend
 npm install
-cp .env.example .env   # only needed if the backend isn't on localhost:8000
+Copy-Item .env.example .env   # only needed if the backend isn't on localhost:8000
 npm run dev
 ```
 
@@ -65,9 +69,9 @@ Open `http://localhost:5173`.
 
 ### Tests
 
-```bash
+```powershell
 cd backend
-source venv/bin/activate
+.\venv\Scripts\Activate.ps1
 pytest
 ```
 
@@ -91,7 +95,7 @@ dependency is mocked so tests are deterministic and free to run.
 
 ## Notes
 
-- `backend/app.db` (SQLite) and `backend/.env` are gitignored and local-only —
+- `backend\app.db` (SQLite) and `backend\.env` are gitignored and local-only —
   delete `app.db` any time to reset to a clean database (it's recreated
   automatically on the next backend start).
 - Scores are explicitly labeled as an application-generated estimate, not an
@@ -121,3 +125,25 @@ These follow directly from the README's promises and should hold in every phase:
    Job Seeker flow; no separate scoring path.
 7. **JD input restriction** — job descriptions accept `.txt` upload or pasted
    text only; other formats are rejected with a clear error.
+
+## Approved decisions
+
+- Curated skill taxonomy of ~300 skills stored as JSON (fallback extraction and
+  validation of AI output).
+- No authentication; single local SQLite database.
+- Frontend verification is a build check only (`npm run build`); no Vitest for now.
+- Windows / PowerShell is the only supported development platform for docs.
+
+## Build phases
+
+| Phase | Scope | Status |
+|---|---|---|
+| 0 | Skeleton: FastAPI + SQLite + `/health`, React/Vite status page, env examples | Done |
+| 1 | Parsing + deterministic extraction/matching/scoring, first end-to-end UI | Not started |
+| 2 | Gemini provider layer, AI structured analysis, semantic matching | Not started |
+| 3 | Learning roadmap, interview questions, answer feedback | Not started |
+| 4 | Resume intelligence, ATS/recruiter view | Not started |
+| 5 | Career intelligence (role radar, trajectory timeline) | Not started |
+| 6 | External evidence (GitHub, LinkedIn, fairness scan) | Not started |
+| 7 | Job Provider mode | Not started |
+| 8 | Hardening and final README | Not started |

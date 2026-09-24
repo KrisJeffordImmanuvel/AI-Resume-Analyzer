@@ -216,3 +216,18 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# --- Project-specific ---
+# Local secrets (only .env.example files are committed)
+.env
+.env.local
+!.env.example
+# Local SQLite database (recreated automatically on backend start)
+app.db
+*.db
+# Python virtual environment and bytecode
+venv/
+__pycache__/
+# Frontend dependencies and build output
+node_modules/
+dist/
