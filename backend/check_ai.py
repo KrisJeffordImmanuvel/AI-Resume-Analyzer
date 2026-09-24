@@ -66,7 +66,10 @@ def check_models(settings) -> bool:
 
     from ai_provider import GeminiProvider
 
-    client = genai.Client(api_key=settings.google_api_key)
+    from google.genai import types
+
+    print("  Asking Google for the model list (up to 30 seconds)...", flush=True)
+    client = genai.Client(api_key=settings.google_api_key, http_options=types.HttpOptions(timeout=30_000))
     try:
         names = [
             m.name.removeprefix("models/")
@@ -82,9 +85,11 @@ def check_models(settings) -> bool:
         return False
     # Cheaper "flash" models first; they are the practical choices for this app.
     names.sort(key=lambda n: ("flash" not in n, "preview" in n or "exp" in n, n))
-    print(f"  {len(names)} text models available; pinging up to {MAX_MODELS_TO_PING} (one tiny request each).\n")
+    print(f"  {len(names)} text models available; pinging up to {MAX_MODELS_TO_PING} (one tiny request each).")
+    print("  A busy model can take ~10 seconds while it is retried.\n", flush=True)
     working = []
     for name in names[:MAX_MODELS_TO_PING]:
+        print(f"  ...     {name}", end="\r", flush=True)
         provider = GeminiProvider(settings.google_api_key, [name], timeout_seconds=30)
         start = time.perf_counter()
         try:
