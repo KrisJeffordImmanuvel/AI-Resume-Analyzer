@@ -21,6 +21,7 @@ class Settings:
     database_url: str
     cors_origins: list[str]
     gemini_model: str
+    gemini_fallback_models: list[str]
     ai_timeout_seconds: float
     semantic_matching: bool
     semantic_model: str
@@ -61,6 +62,9 @@ def get_settings() -> Settings:
         database_url=os.getenv("DATABASE_URL", "").strip() or default_db,
         cors_origins=[o.strip() for o in origins.split(",") if o.strip()],
         gemini_model=os.getenv("GEMINI_MODEL", "").strip() or "gemini-3.6-flash",
+        gemini_fallback_models=[
+            m.strip() for m in os.getenv("GEMINI_FALLBACK_MODELS", "").split(",") if m.strip()
+        ],
         ai_timeout_seconds=_float("AI_TIMEOUT_SECONDS", 60.0),
         # Off by default: calibration showed all-MiniLM-L6-v2 cannot separate related
         # from unrelated resume lines well enough to award credit (see README).

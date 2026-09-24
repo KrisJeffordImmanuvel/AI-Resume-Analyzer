@@ -1,7 +1,8 @@
 """Manual check that AI and semantic matching work on this machine.
 
 Run from the backend folder (with the venv active):
-    python check_ai.py
+    python check_ai.py            # check the configured model and semantic matching
+    python check_ai.py --models   # list Gemini models your key can use and ping each
 
 This makes one small real Gemini request (if a key is set) and loads the local
 semantic model (downloading it the first time). It is NOT part of pytest.
@@ -32,6 +33,7 @@ def check_gemini(settings) -> bool:
     print(f"  API key set : {'yes' if settings.has_api_key else 'no'}")
     print(f"  DEMO_MODE   : {settings.demo_mode}")
     print(f"  Model       : {settings.gemini_model}")
+    print(f"  Fallbacks   : {', '.join(settings.gemini_fallback_models) or 'none'}")
     provider = make_provider(settings)
     if provider is None:
         print("  SKIPPED: AI is off (no key, or DEMO_MODE=true). The app will use fallbacks.")
@@ -47,8 +49,60 @@ def check_gemini(settings) -> bool:
         print(f"  FAILED: {exc}")
         print("  Check the key at https://aistudio.google.com/apikey, or set GEMINI_MODEL to a model your key can use.")
         return False
-    print(f"  OK in {time.perf_counter() - start:.1f}s: {out}")
+    print(f"  OK in {time.perf_counter() - start:.1f}s from {provider.model}: {out}")
     return True
+
+
+MAX_MODELS_TO_PING = 10
+
+
+def check_models(settings) -> bool:
+    """List Gemini text models this key can use and send each a tiny request."""
+    print("== Gemini models for your key ==")
+    if not settings.has_api_key:
+        print("  No GOOGLE_API_KEY set.")
+        return False
+    from google import genai
+
+    from ai_provider import GeminiProvider
+
+    client = genai.Client(api_key=settings.google_api_key)
+    try:
+        names = [
+            m.name.removeprefix("models/")
+            for m in client.models.list()
+            if "generateContent" in (m.supported_actions or [])
+            and m.name.removeprefix("models/").startswith("gemini")
+            and not any(x in m.name for x in ("tts", "image", "audio", "live", "embedding"))
+        ]
+    except Exception as exc:
+        from ai_provider import _safe_message
+
+        print(f"  FAILED to list models: {_safe_message(exc, settings.google_api_key)}")
+        return False
+    # Cheaper "flash" models first; they are the practical choices for this app.
+    names.sort(key=lambda n: ("flash" not in n, "preview" in n or "exp" in n, n))
+    print(f"  {len(names)} text models available; pinging up to {MAX_MODELS_TO_PING} (one tiny request each).\n")
+    working = []
+    for name in names[:MAX_MODELS_TO_PING]:
+        provider = GeminiProvider(settings.google_api_key, [name], timeout_seconds=30)
+        start = time.perf_counter()
+        try:
+            provider.generate_json(system="Reply in JSON.", prompt='Return {"ok": true, "reply": "pong"}.', schema=_Ping)
+            print(f"  OK      {name}  ({time.perf_counter() - start:.1f}s)")
+            working.append(name)
+        except AIError as exc:
+            print(f"  FAILED  {name}  {str(exc).split(': ', 1)[-1][:90]}")
+    if working:
+        # Keep the main model if your key has it (a 503 is temporary); the
+        # backups take over while it is busy. Replace it only if it is not offered.
+        main = settings.gemini_model if settings.gemini_model in names else working[0]
+        backups = [n for n in working if n != main][:2]
+        print("\n  Suggested backend\\.env lines:")
+        if main != settings.gemini_model:
+            print(f"    GEMINI_MODEL={main}")
+        print(f"    GEMINI_FALLBACK_MODELS={','.join(backups)}" if backups else "    (no other working model to use as a backup)")
+    return bool(working)
 
 
 def check_semantic(settings) -> bool:
@@ -98,6 +152,8 @@ def calibrate(embedder, threshold: float) -> None:
 
 if __name__ == "__main__":
     settings = get_settings()
+    if "--models" in sys.argv:
+        sys.exit(0 if check_models(settings) else 1)
     results = [check_gemini(settings), check_semantic(settings)]
     print("\nAll checks passed." if all(results) else "\nSome checks failed (see above).")
     sys.exit(0 if all(results) else 1)

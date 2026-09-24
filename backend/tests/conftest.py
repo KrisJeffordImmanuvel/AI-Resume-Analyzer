@@ -66,6 +66,7 @@ def make_client(tmp_path, monkeypatch):
         monkeypatch.setenv("DEMO_MODE", demo_mode)
         monkeypatch.setenv("SEMANTIC_MATCHING", "false")
         monkeypatch.delenv("GEMINI_MODEL", raising=False)
+        monkeypatch.delenv("GEMINI_FALLBACK_MODELS", raising=False)
         monkeypatch.delenv("SEMANTIC_THRESHOLD", raising=False)
         if api_key:
             monkeypatch.setenv("GOOGLE_API_KEY", api_key)

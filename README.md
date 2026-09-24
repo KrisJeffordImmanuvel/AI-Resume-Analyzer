@@ -66,7 +66,18 @@ python check_ai.py
 This makes one small real Gemini request (if a key is set) and, if semantic
 matching is on, loads the semantic model (downloading ~90 MB the first time)
 and prints a calibration table. It ends with
-`All checks passed.` or explains what failed. Restart uvicorn after changing
+`All checks passed.` or explains what failed.
+
+If Gemini often answers `503 UNAVAILABLE` ("high demand"), add backup models:
+
+```powershell
+python check_ai.py --models
+```
+
+This lists the Gemini models your key can use, sends each one tiny request,
+and prints suggested `GEMINI_FALLBACK_MODELS=...` line(s) for `backend\.env`.
+When the main model is still busy after retries, the app tries the backups in
+order; results name the model that actually answered. Restart uvicorn after changing
 `backend\.env`; the backend reads it only at startup.
 
 ## Frontend

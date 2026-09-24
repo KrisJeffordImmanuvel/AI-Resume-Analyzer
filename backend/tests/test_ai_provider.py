@@ -79,7 +79,7 @@ def test_google_api_errors_are_summarised_in_one_line():
     exc = errors.ClientError(400, {"error": {"code": 400, "message": "API key not valid.", "status": "INVALID_ARGUMENT"}})
     with pytest.raises(AIError) as err:
         provider_with(FakeModels(error=exc)).generate_json(system="s", prompt="p", schema=AIResumeProfile)
-    assert str(err.value) == "400 INVALID_ARGUMENT: API key not valid."
+    assert str(err.value) == "gemini-test: 400 INVALID_ARGUMENT: API key not valid."
 
 
 def test_temporary_errors_are_retried_but_permanent_ones_are_not():
@@ -95,3 +95,64 @@ def test_semantic_matching_is_off_unless_enabled(monkeypatch):
     assert get_settings().semantic_matching is False
     monkeypatch.setenv("SEMANTIC_MATCHING", "true")
     assert get_settings().semantic_matching is True
+
+
+class ScriptedModels:
+    """generate_content fails or succeeds per model name."""
+
+    def __init__(self, outcomes):
+        self.outcomes, self.calls = outcomes, []
+
+    def generate_content(self, **kwargs):
+        self.calls.append(kwargs["model"])
+        outcome = self.outcomes[kwargs["model"]]
+        if isinstance(outcome, Exception):
+            raise outcome
+        return outcome
+
+
+def api_error(code, status, message):
+    from google.genai import errors
+
+    cls = errors.ServerError if code >= 500 else errors.ClientError
+    return cls(code, {"error": {"code": code, "message": message, "status": status}})
+
+
+def two_model_provider(outcomes):
+    provider = GeminiProvider("k", ["main-model", "backup-model"], timeout_seconds=5)
+    models = ScriptedModels(outcomes)
+    provider._client = type("C", (), {"models": models})()
+    return provider, models
+
+
+def test_overloaded_main_model_falls_back_to_backup():
+    ok = FakeResponse(text='{"skills": [], "experience": [], "education": []}')
+    provider, models = two_model_provider({"main-model": api_error(503, "UNAVAILABLE", "high demand"),
+                                           "backup-model": ok})
+    provider.generate_json(system="s", prompt="p", schema=AIResumeProfile)
+    assert models.calls == ["main-model", "backup-model"]
+    assert provider.model == "backup-model"  # labels show the model that answered
+
+
+def test_permanent_error_does_not_try_backup():
+    provider, models = two_model_provider({"main-model": api_error(400, "INVALID_ARGUMENT", "API key not valid."),
+                                           "backup-model": FakeResponse(text="{}")})
+    with pytest.raises(AIError, match="API key not valid"):
+        provider.generate_json(system="s", prompt="p", schema=AIResumeProfile)
+    assert models.calls == ["main-model"]
+
+
+def test_all_models_overloaded_reports_each():
+    provider, _ = two_model_provider({"main-model": api_error(503, "UNAVAILABLE", "high demand"),
+                                      "backup-model": api_error(429, "RESOURCE_EXHAUSTED", "quota")})
+    with pytest.raises(AIError) as err:
+        provider.generate_json(system="s", prompt="p", schema=AIResumeProfile)
+    assert "main-model: 503" in str(err.value) and "backup-model: 429" in str(err.value)
+
+
+def test_fallback_models_come_from_settings(monkeypatch):
+    monkeypatch.setenv("GOOGLE_API_KEY", "k")
+    monkeypatch.setenv("DEMO_MODE", "false")
+    monkeypatch.setenv("GEMINI_MODEL", "main-model")
+    monkeypatch.setenv("GEMINI_FALLBACK_MODELS", " backup-a , main-model,backup-b ")
+    assert make_provider(get_settings()).models == ["main-model", "backup-a", "backup-b"]

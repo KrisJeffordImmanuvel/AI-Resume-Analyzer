@@ -29,7 +29,7 @@ def _safe_message(exc: Exception, secret: str) -> str:
         text = f"{code} {getattr(exc, 'status', '') or ''}: {message}"
     else:
         text = f"{type(exc).__name__}: {exc}"
-    if secret:
+    if len(secret) >= 8:  # real keys are long; a tiny value would mangle ordinary words
         text = text.replace(secret, "***")
     text = " ".join(text.split())
     return text[:300]
@@ -42,15 +42,23 @@ RETRY_STATUS_CODES = [429, 500, 502, 503, 504]
 
 
 class GeminiProvider:
+    """Gemini via the Google Gen AI SDK.
+
+    `models` is tried in order: if a model is still overloaded or rate-limited
+    after its retries, the next one is used. Permanent errors (bad key, unknown
+    model) stop immediately. After a call, `model` names the model that answered.
+    """
+
     name = "gemini"
 
-    def __init__(self, api_key: str, model: str, timeout_seconds: float):
+    def __init__(self, api_key: str, models: list[str] | str, timeout_seconds: float):
         from google import genai
         from google.genai import types
 
         self._types = types
         self._api_key = api_key
-        self.model = model
+        self.models = [models] if isinstance(models, str) else list(models)
+        self.model = self.models[0]
         self.http_options = types.HttpOptions(
             timeout=int(timeout_seconds * 1000),  # milliseconds
             retry_options=types.HttpRetryOptions(
@@ -62,21 +70,33 @@ class GeminiProvider:
         )
         self._client = genai.Client(api_key=api_key, http_options=self.http_options)
 
+    def _call(self, model: str, system: str, prompt: str, schema: type[BaseModel]):
+        return self._client.models.generate_content(
+            model=model,
+            contents=prompt,
+            config=self._types.GenerateContentConfig(
+                system_instruction=system,
+                response_mime_type="application/json",
+                response_schema=schema,
+                temperature=0,
+                automatic_function_calling=self._types.AutomaticFunctionCallingConfig(disable=True),
+            ),
+        )
+
     def generate_json(self, *, system: str, prompt: str, schema: type[BaseModel]) -> dict:
-        try:
-            response = self._client.models.generate_content(
-                model=self.model,
-                contents=prompt,
-                config=self._types.GenerateContentConfig(
-                    system_instruction=system,
-                    response_mime_type="application/json",
-                    response_schema=schema,
-                    temperature=0,
-                    automatic_function_calling=self._types.AutomaticFunctionCallingConfig(disable=True),
-                ),
-            )
-        except Exception as exc:  # network, auth, quota, bad model name...
-            raise AIError(_safe_message(exc, self._api_key)) from exc
+        errors = []
+        response = None
+        for model in self.models:
+            try:
+                response = self._call(model, system, prompt, schema)
+                self.model = model
+                break
+            except Exception as exc:  # network, auth, quota, bad model name...
+                errors.append(f"{model}: {_safe_message(exc, self._api_key)}")
+                if getattr(exc, "code", None) not in RETRY_STATUS_CODES:
+                    break  # permanent problem: another model will not help
+        if response is None:
+            raise AIError("; ".join(errors)[:600])
 
         parsed = getattr(response, "parsed", None)
         if isinstance(parsed, BaseModel):
@@ -94,4 +114,5 @@ def make_provider(settings: Settings) -> AIProvider | None:
     """Return a provider when AI is enabled, else None (callers then use fallbacks)."""
     if not settings.ai_enabled:
         return None
-    return GeminiProvider(settings.google_api_key, settings.gemini_model, settings.ai_timeout_seconds)
+    models = [settings.gemini_model] + [m for m in settings.gemini_fallback_models if m != settings.gemini_model]
+    return GeminiProvider(settings.google_api_key, models, settings.ai_timeout_seconds)
