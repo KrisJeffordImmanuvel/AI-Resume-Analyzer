@@ -94,15 +94,19 @@ def check_models(settings) -> bool:
         start = time.perf_counter()
         try:
             provider.generate_json(system="Reply in JSON.", prompt='Return {"ok": true, "reply": "pong"}.', schema=_Ping)
-            print(f"  OK      {name}  ({time.perf_counter() - start:.1f}s)")
-            working.append(name)
+            elapsed = time.perf_counter() - start
+            print(f"  OK      {name}  ({elapsed:.1f}s)")
+            working.append((elapsed, name))
         except AIError as exc:
             print(f"  FAILED  {name}  {str(exc).split(': ', 1)[-1][:90]}")
     if working:
         # Keep the main model if your key has it (a 503 is temporary); the
         # backups take over while it is busy. Replace it only if it is not offered.
-        main = settings.gemini_model if settings.gemini_model in names else working[0]
-        backups = [n for n in working if n != main][:2]
+        # Fastest first; skip "-latest" aliases, which may point at the main model
+        # and so be busy at the same time.
+        ranked = [n for _, n in sorted(working)]
+        main = settings.gemini_model if settings.gemini_model in names else ranked[0]
+        backups = [n for n in ranked if n != main and not n.endswith("-latest")][:2]
         print("\n  Suggested backend\\.env lines:")
         if main != settings.gemini_model:
             print(f"    GEMINI_MODEL={main}")
