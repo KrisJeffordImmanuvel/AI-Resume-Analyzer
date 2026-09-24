@@ -4,15 +4,14 @@ An evidence-grounded resume/job-description analysis platform for job seekers
 and recruiters. See [PROJECT_SPEC.md](PROJECT_SPEC.md) for the full feature map
 and build plan.
 
-> **Status: Phase 4.** Upload a resume (PDF, DOCX or TXT) and a job description
+> **Status: Phase 5.** Upload a resume (PDF, DOCX or TXT) and a job description
 > (pasted text or a .txt file) to get a job-fit score with matched and missing
 > skills, each backed by a verbatim quote. Skills are matched against a curated
 > list of 375 skills (`backend\data\skills.json`). With a Gemini key, AI also
 > extracts a resume profile; every AI quote is checked against the resume and
-> dropped if it is not there. Results have five tabs: **Fit report**,
-> **Learning roadmap**, **Mock interview**, **Resume quality** (bullet checks and
-> a rewrite workspace that never adds facts) and **ATS view** (raw parse
-> preview, keyword match and a heuristic 6-second scan).
+> dropped if it is not there. Results have six tabs: **Fit report**, **Learning
+> roadmap**, **Mock interview**, **Resume quality**, **ATS view** and
+> **Career** (fit across 10 common roles, plus a dated career timeline).
 
 ## Requirements (Windows)
 
@@ -190,6 +189,22 @@ dependency is mocked so tests are deterministic and free to run.
     there under different wording (e.g. "JS" for "JavaScript").
   - *6-second scan*: checks on the top of page one: headline vs job title,
     job skills visible early, most recent role, and numbers in achievements.
+
+## Career intelligence
+
+- **Fit across common roles**: a radar chart and a sorted table of fit against
+  10 generic role profiles (`backend\data\role_profiles.json`: Backend,
+  Frontend, Full-stack, Data analyst, Data engineer, ML engineer, DevOps/SRE,
+  Mobile, QA/Test, Product manager). Each profile is scored by the same engine
+  as the job-fit score (required skills x3, nice-to-have x1), including verified
+  AI-inferred skills. Hover a point for details; the table lists missing
+  required skills per role. You can edit the profiles file to add roles; skill
+  names must match `skills.json` (a test checks this).
+- **Career timeline**: roles and education in date order, newest first, built
+  only from entries whose dates can be read ("Jan 2020 - Mar 2022",
+  "2022 - Present", "2020"). Each shows its resume quote and duration. Gaps of
+  6 months or more between roles are noted; year-only dates are flagged as
+  approximate. Entries without dates are left out, never estimated.
 
 ## Notes
 

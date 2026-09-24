@@ -318,3 +318,56 @@ class AtsResponse(BaseModel):
     parse: ParsePreview
     keywords: KeywordDiff
     scan: SixSecondScan
+
+
+# ---- Phase 5: career intelligence -------------------------------------------
+
+class RoleFit(BaseModel):
+    id: str
+    name: str
+    short: str = Field(description="Short label for chart axes.")
+    score: int = Field(description="0-100, same scoring engine as the job-fit score.")
+    required_matched: int
+    required_related: int
+    required_total: int
+    matched: list[str]
+    missing_required: list[str]
+    missing_preferred: list[str]
+
+
+class TimelineItem(BaseModel):
+    kind: Literal["role", "education"]
+    title: str | None
+    organization: str | None
+    start: str = Field(description="YYYY-MM")
+    end: str = Field(description="YYYY-MM (the current month when ongoing)")
+    current: bool
+    dates_text: str = Field(description="The date text as written in the resume.")
+    duration_months: int | None
+    month_precision: bool
+    evidence: Evidence
+
+
+class TimelineGap(BaseModel):
+    after: str
+    before: str
+    months: int
+    from_: str = Field(alias="from")
+    to: str
+
+    model_config = {"populate_by_name": True}
+
+
+class Timeline(BaseModel):
+    items: list[TimelineItem]
+    gaps: list[TimelineGap]
+    career_span_months: int | None
+    roles: int
+    notices: list[str]
+
+
+class CareerResponse(BaseModel):
+    label: str
+    profile_source: Literal["ai", "fallback"]
+    roles: list[RoleFit]
+    timeline: Timeline

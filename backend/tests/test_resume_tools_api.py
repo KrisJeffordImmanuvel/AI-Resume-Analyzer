@@ -54,3 +54,16 @@ def test_validation_and_not_found(make_client):
                    client.get("/api/analyses/999/rewrites")]
     assert blank.status_code == 422 and too_long.status_code == 422
     assert [r.status_code for r in missing] == [404, 404, 404, 404]
+
+
+def test_career_endpoint(make_client):
+    with make_client() as client:
+        aid = new_analysis(client)
+        resp = client.get(f"/api/analyses/{aid}/career")
+        missing = client.get("/api/analyses/999/career")
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert len(body["roles"]) == 10
+    assert body["timeline"]["roles"] == 2
+    assert "from" in body["timeline"]["gaps"][0] if body["timeline"]["gaps"] else True
+    assert missing.status_code == 404

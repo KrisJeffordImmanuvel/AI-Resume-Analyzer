@@ -7,12 +7,13 @@ from sqlalchemy.orm import Session
 
 from ai_provider import AIProvider
 from ats import ats_view
+from career import career_view
 from config import Settings, get_settings
 from models import BulletRewrite
 from resume_quality import quality_report, rewrite_bullet
 from routers.analyses import _upgrade_legacy, get_ai_provider, get_db
 from routers.coaching import _load_analysis, _utc
-from schemas import AtsResponse, QualityResponse, RewriteRequest, RewriteResponse
+from schemas import AtsResponse, CareerResponse, QualityResponse, RewriteRequest, RewriteResponse
 
 router = APIRouter(tags=["resume tools"])
 
@@ -60,3 +61,9 @@ def get_ats(analysis_id: int, db: Session = Depends(get_db)) -> AtsResponse:
     analysis = _load_analysis(db, analysis_id)
     profile = _upgrade_legacy(analysis.result).get("profile", {})
     return AtsResponse(**ats_view(analysis.resume_text, analysis.jd_text, profile))
+
+
+@router.get("/api/analyses/{analysis_id}/career", response_model=CareerResponse, response_model_by_alias=True)
+def get_career(analysis_id: int, db: Session = Depends(get_db)) -> CareerResponse:
+    analysis = _load_analysis(db, analysis_id)
+    return CareerResponse(**career_view(analysis.resume_text, _upgrade_legacy(analysis.result)))

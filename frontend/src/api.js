@@ -63,3 +63,8 @@ export async function getAts(analysisId) {
   const { data } = await api.get(`/api/analyses/${analysisId}/ats`)
   return data
 }
+
+export async function getCareer(analysisId) {
+  const { data } = await api.get(`/api/analyses/${analysisId}/career`)
+  return data
+}

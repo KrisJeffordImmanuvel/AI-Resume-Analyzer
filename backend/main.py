@@ -11,7 +11,7 @@ from database import check_db, init_db, make_engine, make_session_factory
 from routers import analyses, coaching, resume_tools
 from schemas import HealthResponse
 
-APP_VERSION = "0.5.0"
+APP_VERSION = "0.6.0"
 
 
 @asynccontextmanager
