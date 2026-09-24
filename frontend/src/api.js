@@ -68,3 +68,23 @@ export async function getCareer(analysisId) {
   const { data } = await api.get(`/api/analyses/${analysisId}/career`)
   return data
 }
+
+export async function getEvidence(analysisId) {
+  const { data } = await api.get(`/api/analyses/${analysisId}/evidence`)
+  return data
+}
+
+export async function runGithub(analysisId, username) {
+  const { data } = await api.post(`/api/analyses/${analysisId}/github`, { username: username || null })
+  return data
+}
+
+export async function runLinkedin(analysisId, text) {
+  const { data } = await api.post(`/api/analyses/${analysisId}/linkedin`, { text })
+  return data
+}
+
+export async function getFairness(analysisId) {
+  const { data } = await api.get(`/api/analyses/${analysisId}/fairness`)
+  return data
+}

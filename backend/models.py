@@ -82,3 +82,15 @@ class BulletRewrite(Base):
     analysis_id: Mapped[int] = mapped_column(ForeignKey("analyses.id"), index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     data: Mapped[dict] = mapped_column(JSON)
+
+
+class ExternalCheck(Base):
+    """A GitHub or LinkedIn evidence check run for one analysis."""
+
+    __tablename__ = "external_checks"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    analysis_id: Mapped[int] = mapped_column(ForeignKey("analyses.id"), index=True)
+    kind: Mapped[str] = mapped_column(String(20))  # "github" or "linkedin"
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    data: Mapped[dict] = mapped_column(JSON)

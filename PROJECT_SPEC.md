@@ -145,6 +145,6 @@ These follow directly from the README's promises and should hold in every phase:
 | 3 | Learning roadmap, interview questions, answer feedback | Done |
 | 4 | Resume intelligence, ATS/recruiter view | Done |
 | 5 | Career intelligence (role radar, trajectory timeline) | Done |
-| 6 | External evidence (GitHub, LinkedIn, fairness scan) | Not started |
+| 6 | External evidence (GitHub, LinkedIn, fairness scan) | Done |
 | 7 | Job Provider mode | Not started |
 | 8 | Hardening and final README | Not started |

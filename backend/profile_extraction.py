@@ -137,6 +137,7 @@ _DATE_RANGE = re.compile(
     r"(?:\s*(?:-|–|—|to)\s*(?:(?:(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?\s+)?(?:19|20)\d\d|present|current|now))?",
     re.I,
 )
+_DURATION = re.compile(r"\b\d+\s*(?:yrs?|years?|mos?|months?)\b", re.I)
 _BULLET = re.compile(r"^\s*[-*•·▪◦‣–]\s+")
 
 
@@ -162,18 +163,31 @@ def _fallback_profile(resume_text: str) -> dict:
 
     experience, education = [], []
     section = None
+    pending: list[int] = []  # start offsets of recent plain lines in this section
+    offset = 0
     for line in resume_text.split("\n"):
+        start, end = offset, offset + len(line)
+        offset = end + 1
         heading = _section_of(line)
         if heading:
-            section = heading
+            section, pending = heading, []
             continue
         text = line.strip()
         if not text or _BULLET.match(line):
+            pending = []
             continue
         dates = _DATE_RANGE.search(text)
         evidence = {"quote": text, "term": None, "term_offset": None, "similarity": None}
         if section == "experience" and dates and len(experience) < MAX_EXPERIENCE:
+            # LinkedIn-style layouts put the title and company on the lines above a
+            # date-only line; include up to two of them so the entry is recognisable.
+            rest = _DURATION.sub(" ", text.replace(dates.group(0), " "))  # LinkedIn adds "· 2 yrs 9 mos"
+            if len(re.findall(r"[A-Za-z]{2,}", rest)) < 2 and pending:
+                evidence["quote"] = resume_text[pending[-2:][0]:end].strip()
             experience.append({"title": None, "organization": None, "dates": dates.group(0), "evidence": evidence})
+            pending = []
+        elif section == "experience":
+            pending.append(start)
         elif section == "education" and len(education) < MAX_EDUCATION:
             education.append({
                 "qualification": None,

@@ -26,6 +26,7 @@ class Settings:
     semantic_matching: bool
     semantic_model: str
     semantic_threshold: float
+    github_token: str
 
     @property
     def has_api_key(self) -> bool:
@@ -71,4 +72,5 @@ def get_settings() -> Settings:
         semantic_matching=os.getenv("SEMANTIC_MATCHING", "false").strip().lower() in _TRUE_VALUES,
         semantic_model=os.getenv("SEMANTIC_MODEL", "").strip() or "sentence-transformers/all-MiniLM-L6-v2",
         semantic_threshold=_float("SEMANTIC_THRESHOLD", 0.6),
+        github_token=os.getenv("GITHUB_TOKEN", "").strip(),
     )

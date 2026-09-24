@@ -5,6 +5,7 @@ import Interview from './Interview.jsx'
 import ResumeQuality from './ResumeQuality.jsx'
 import AtsView from './AtsView.jsx'
 import Career from './Career.jsx'
+import Evidence from './Evidence.jsx'
 
 const PRIORITY_LABEL = { required: 'Required', standard: 'Mentioned', preferred: 'Nice to have' }
 
@@ -306,6 +307,7 @@ const TABS = [
   ['quality', 'Resume quality'],
   ['ats', 'ATS view'],
   ['career', 'Career'],
+  ['evidence', 'Evidence'],
 ]
 
 export default function AnalysisResults({ result }) {
@@ -332,6 +334,7 @@ export default function AnalysisResults({ result }) {
       {tab === 'quality' && <ResumeQuality analysisId={result.id} />}
       {tab === 'ats' && <AtsView analysisId={result.id} />}
       {tab === 'career' && <Career analysisId={result.id} />}
+      {tab === 'evidence' && <Evidence analysisId={result.id} />}
     </div>
   )
 }

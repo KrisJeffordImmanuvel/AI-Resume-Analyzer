@@ -50,6 +50,27 @@ class FakeEmbedder:
         return out
 
 
+class FakeGitHub:
+    """Stands in for the GitHub API. `repos_data` is a list of repo dicts like GitHub returns."""
+
+    def __init__(self, repos_data=None, error=None, user_data=None):
+        self.repos_data = repos_data or []
+        self.error = error
+        self.user_data = user_data
+        self.calls = []
+
+    def user(self, username):
+        self.calls.append(("user", username))
+        if self.error:
+            raise self.error
+        return self.user_data or {"login": username, "html_url": f"https://github.com/{username}",
+                                  "public_repos": len(self.repos_data), "followers": 0}
+
+    def repos(self, username):
+        self.calls.append(("repos", username))
+        return self.repos_data
+
+
 @pytest.fixture
 def make_client(tmp_path, monkeypatch):
     """Build a TestClient with a throwaway SQLite DB and controlled AI settings.
@@ -60,8 +81,9 @@ def make_client(tmp_path, monkeypatch):
     """
     from main import app
     from routers.analyses import get_ai_provider, get_embedder
+    from routers.evidence import get_github_client
 
-    def _make(api_key: str = "", demo_mode: str = "false", provider=None, embedder=None) -> TestClient:
+    def _make(api_key: str = "", demo_mode: str = "false", provider=None, embedder=None, github=None) -> TestClient:
         monkeypatch.setenv("DATABASE_URL", f"sqlite:///{(tmp_path / 'test.db').as_posix()}")
         monkeypatch.setenv("DEMO_MODE", demo_mode)
         monkeypatch.setenv("SEMANTIC_MATCHING", "false")
@@ -75,6 +97,7 @@ def make_client(tmp_path, monkeypatch):
 
         app.dependency_overrides[get_ai_provider] = lambda: provider
         app.dependency_overrides[get_embedder] = lambda: embedder
+        app.dependency_overrides[get_github_client] = lambda: github or FakeGitHub()
         return TestClient(app)
 
     yield _make

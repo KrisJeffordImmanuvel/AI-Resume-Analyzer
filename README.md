@@ -4,14 +4,15 @@ An evidence-grounded resume/job-description analysis platform for job seekers
 and recruiters. See [PROJECT_SPEC.md](PROJECT_SPEC.md) for the full feature map
 and build plan.
 
-> **Status: Phase 5.** Upload a resume (PDF, DOCX or TXT) and a job description
+> **Status: Phase 6.** Upload a resume (PDF, DOCX or TXT) and a job description
 > (pasted text or a .txt file) to get a job-fit score with matched and missing
 > skills, each backed by a verbatim quote. Skills are matched against a curated
 > list of 375 skills (`backend\data\skills.json`). With a Gemini key, AI also
 > extracts a resume profile; every AI quote is checked against the resume and
-> dropped if it is not there. Results have six tabs: **Fit report**, **Learning
-> roadmap**, **Mock interview**, **Resume quality**, **ATS view** and
-> **Career** (fit across 10 common roles, plus a dated career timeline).
+> dropped if it is not there. Results have seven tabs: **Fit report**,
+> **Learning roadmap**, **Mock interview**, **Resume quality**, **ATS view**,
+> **Career** and **Evidence** (GitHub check, LinkedIn consistency check and a
+> fairness scan).
 
 ## Requirements (Windows)
 
@@ -205,6 +206,29 @@ dependency is mocked so tests are deterministic and free to run.
   "2022 - Present", "2020"). Each shows its resume quote and duration. Gaps of
   6 months or more between roles are noted; year-only dates are flagged as
   approximate. Entries without dates are left out, never estimated.
+
+## External evidence
+
+- **GitHub check**: enter a username (pre-filled when the resume links to
+  github.com/you). The app reads public data from GitHub's API; only the
+  username is sent. For each technical skill on the resume it shows public,
+  non-fork repos that support it, either by the repo's main language or by the
+  repo's own topics/description, with links. Skills not seen are listed as
+  "not seen in public repos", which is normal for private or company work.
+  Anonymous requests are limited to 60 per hour; set `GITHUB_TOKEN` in
+  `backend\.env` (a token with no scopes) for 5,000.
+- **LinkedIn consistency check**: nothing is fetched from LinkedIn. Copy your
+  profile's Experience (and Skills) section and paste it. Roles are matched
+  with the resume and date differences are shown with both texts quoted;
+  roles and skills that appear on only one side are listed. It checks that
+  the two documents agree, not that either is true.
+- **Fairness scan** (rule-based): flags job-description wording that can put
+  some applicants off (gender-coded words such as "rockstar", age-coded words
+  such as "young" or "digital native", exclusionary requirements such as
+  "native English speaker") and personal details on the resume that are not
+  needed to judge skills (date of birth, marital status, religion, family
+  details, photo). Each flag quotes the exact line. The app's scores never use
+  any of these details.
 
 ## Notes
 

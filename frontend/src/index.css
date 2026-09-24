@@ -261,3 +261,21 @@ details .quote { margin-top: 6px; }
 .role-related { color: var(--muted); font-size: 0.85rem; }
 .roles td:nth-child(3) { white-space: nowrap; }
 .tl-duration { font-weight: 400; color: var(--muted); }
+
+/* ---- Phase 6: evidence ---- */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.inline-form { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+.inline-form input {
+  flex: 1; min-width: 160px; font: inherit; color: var(--text); background: var(--bg);
+  border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px;
+}
+.repo-list { margin: 4px 0 0 24px; padding-left: 16px; font-size: 0.9rem; }
+.repo-list a { color: var(--accent); }
+.badge--status-ok { background: var(--good-bg); color: var(--good); }
+.badge--status-bad { background: var(--bad-bg); color: var(--bad); }
+.badge--status-warn { background: var(--warn-bg); color: var(--warn); }
+.li-result { margin-top: 16px; }
+.li-result .before-after { margin-top: 8px; }
+.card h2 svg { vertical-align: -3px; margin-right: 4px; }
+.fair-suggestion { margin-top: 6px; }
+.subhead svg, .muted svg { vertical-align: -2px; }
