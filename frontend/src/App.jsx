@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Briefcase, User } from 'lucide-react'
+import { Briefcase, ScanSearch, User } from 'lucide-react'
 import StatusIndicator from './StatusIndicator.jsx'
 import DataFooter from './DataFooter.jsx'
 import AnalyzeForm from './AnalyzeForm.jsx'
@@ -61,53 +61,66 @@ export default function App() {
   }
 
   return (
-    <main className="app">
-      <header className="app-header">
-        <h1>AI Resume &amp; Career Intelligence Platform</h1>
-        <StatusIndicator />
+    <>
+      <header className="topbar">
+        <div className="topbar__inner">
+          <div className="brand">
+            <span className="brand__mark" aria-hidden="true">
+              <ScanSearch size={20} />
+            </span>
+            <h1 className="brand__name">
+              AI Resume &amp; Career Intelligence <span className="brand__suffix">Platform</span>
+            </h1>
+          </div>
+          <StatusIndicator />
+        </div>
       </header>
-      <Announcer />
-      <TabList
-        id="mode"
-        label="Mode"
-        className="mode-switch"
-        tabs={[['seeker', 'Job Seeker', User], ['provider', 'Job Provider', Briefcase]]}
-        value={mode}
-        onChange={switchMode}
-      />
-      <TabPanel id="mode" value={mode}>
-        <p className="subtitle">
-          {mode === 'seeker'
-            ? 'Upload a resume and a job description to see an evidence-backed fit report.'
-            : 'Set a job description once, then upload candidate resumes and compare them side by side.'}
-        </p>
-        {mode === 'seeker' ? (
-          <>
-            <AnalyzeForm onResult={onNewResult} />
-            <RecentAnalyses
-              refreshKey={historyKey}
-              currentId={result?.id}
-              onOpen={(r) => {
-                announce(`Opened the analysis of ${r.resume_filename}.`)
-                showResult(r)
-              }}
-              onDeleted={(id) => result?.id === id && setResult(null)}
-            />
-            {result && (
-              <section ref={resultsRef} tabIndex={-1} className="results-anchor" aria-label="Analysis results">
-                <ErrorBoundary key={result.id}>
-                  <AnalysisResults result={result} />
-                </ErrorBoundary>
-              </section>
-            )}
-          </>
-        ) : (
-          <ErrorBoundary>
-            <Provider />
-          </ErrorBoundary>
-        )}
-      </TabPanel>
-      <DataFooter />
-    </main>
+      <main className="app">
+        <Announcer />
+        <div className="hero">
+          <TabList
+            id="mode"
+            label="Mode"
+            className="mode-switch"
+            tabs={[['seeker', 'Job Seeker', User], ['provider', 'Job Provider', Briefcase]]}
+            value={mode}
+            onChange={switchMode}
+          />
+          <p className="subtitle">
+            {mode === 'seeker'
+              ? 'See how well a resume fits a job, backed by quotes from both documents.'
+              : 'Set a job description once, then compare candidate resumes side by side.'}
+          </p>
+        </div>
+        <TabPanel id="mode" value={mode}>
+          {mode === 'seeker' ? (
+            <>
+              <AnalyzeForm onResult={onNewResult} />
+              <RecentAnalyses
+                refreshKey={historyKey}
+                currentId={result?.id}
+                onOpen={(r) => {
+                  announce(`Opened the analysis of ${r.resume_filename}.`)
+                  showResult(r)
+                }}
+                onDeleted={(id) => result?.id === id && setResult(null)}
+              />
+              {result && (
+                <section ref={resultsRef} tabIndex={-1} className="results-anchor" aria-label="Analysis results">
+                  <ErrorBoundary key={result.id}>
+                    <AnalysisResults result={result} />
+                  </ErrorBoundary>
+                </section>
+              )}
+            </>
+          ) : (
+            <ErrorBoundary>
+              <Provider />
+            </ErrorBoundary>
+          )}
+        </TabPanel>
+        <DataFooter />
+      </main>
+    </>
   )
 }

@@ -151,7 +151,8 @@ remembers your choice).
 New here? Click **Try with sample data** to analyze the fictional sample resume
 and job description straight away.
 
-1. Choose your resume (PDF, DOCX or TXT, up to 5 MB).
+1. Drag your resume onto the upload area, or click it to choose a file (PDF,
+   DOCX or TXT, up to 5 MB).
 2. Paste the job description, or upload it as a `.txt` file.
 3. Click **Analyze**. While it works you see what it is doing and for how
    long; **Cancel** stops it (nothing is saved). With AI on it usually takes
@@ -166,7 +167,7 @@ The results have seven tabs:
 
 | Tab | What it shows |
 |---|---|
-| **Fit report** | Job-fit score, priority breakdown, matched and missing skills with highlighted quotes from both documents, the resume profile (experience, education), other resume skills |
+| **Fit report** | A summary first (score, required skills found, missing required skills), then sections you can open and close: matched and missing skills with highlighted quotes from both documents, the resume profile (experience, education), other resume skills |
 | **Learning roadmap** | One entry per missing skill (and per skill with only half-credit evidence): study steps, a project idea and a YouTube search link. The link is always built by the app, never written by AI |
 | **Mock interview** | 6–8 questions, each showing the resume or job-description line it is based on. Type an answer and click **Get feedback** for strengths, improvements and one follow-up question |
 | **Resume quality** | Checks for each bullet (numbers, action verbs, length, first person, filler) and a rewrite workspace with before/after. Rewrites that add a number or skill not in your resume are rejected; unknown figures become `[placeholders]` |
@@ -181,7 +182,7 @@ The results have seven tabs:
    give it a title. Saved jobs can be picked again from the dropdown.
    **Delete job** removes the selected job and permanently deletes its
    candidates' resumes and reports (you are asked to confirm first).
-3. Under **Add candidates**, choose up to 10 resumes at a time and click
+3. Under **Add candidates**, drag in (or choose) up to 10 resumes at a time and click
    **Add candidates**. Each resume is analysed with exactly the same engine as
    Job Seeker mode. Resumes are analysed one at a time ("Analysing resume 2
    of 5") and appear in the ranking as each finishes; **Cancel the rest**

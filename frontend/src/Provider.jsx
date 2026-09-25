@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Briefcase, ClipboardPaste, EyeOff, FileText, Loader2, Plus, Trash2, Upload, Users, Check, Minus, X, Info } from 'lucide-react'
 import { addCandidates, createJob, deleteJob, errorMessage, getAnalysis, getJob, isCancelled, listJobs, removeCandidate } from './api.js'
 import Working from './Working.jsx'
+import FileDrop from './FileDrop.jsx'
 import AnalysisResults from './AnalysisResults.jsx'
 import { announce } from './Announcer.jsx'
 import { TabList, TabPanel } from './Tabs.jsx'
@@ -53,24 +54,30 @@ function NewJobForm({ onCreated, onCancel }) {
         <span className="field__label">Job title <small>(optional; defaults to the first line)</small></span>
         <input className="text-input" type="text" maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} />
       </label>
-      <fieldset className="field">
-        <legend className="field__label">Job description</legend>
-        <TabList
-          id="job-jd"
-          label="How to add the job description"
-          tabs={[['paste', 'Paste text', ClipboardPaste], ['upload', 'Upload .txt', Upload]]}
-          value={mode}
-          onChange={setMode}
-        />
+      <div className="field" role="group" aria-labelledby="job-jd-label">
+        <div className="field__row">
+          <span className="field__label" id="job-jd-label">
+            <ClipboardPaste size={16} aria-hidden="true" /> Job description
+          </span>
+          <TabList
+            className="toggle"
+            id="job-jd"
+            label="How to add the job description"
+            tabs={[['paste', 'Paste text'], ['upload', 'Upload .txt']]}
+            value={mode}
+            onChange={setMode}
+          />
+        </div>
         <TabPanel id="job-jd" value={mode} className="field">
           {mode === 'paste' ? (
             <textarea rows={8} value={text} onChange={(e) => setText(e.target.value)} aria-label="Job description text"
               placeholder="Paste the full job description…" />
           ) : (
-            <input type="file" accept=".txt" aria-label="Job description file (.txt)" onChange={(e) => setFile(e.target.files[0] || null)} />
+            <FileDrop id="job-jd-file" label="Job description file (.txt)" hint="A .txt file" accept=".txt"
+              files={[file]} onFiles={(list) => setFile(list[0] || null)} />
           )}
         </TabPanel>
-      </fieldset>
+      </div>
       {error && <p className="form__error" role="alert">{error}</p>}
       <div className="form__actions">
         <button type="submit" className="primary" disabled={busy || !ready}>
@@ -433,8 +440,9 @@ export default function Provider() {
             Upload up to {MAX_FILES} resumes at a time (PDF, DOCX or TXT). Each one is analysed with exactly the same
             engine as Job Seeker mode.
           </p>
-          <input ref={fileInput} type="file" multiple accept=".pdf,.docx,.txt" aria-label={`Candidate resumes (up to ${MAX_FILES})`}
-            onChange={(e) => setFiles([...e.target.files])} />
+          <FileDrop id="candidate-files" multiple inputRef={fileInput} accept=".pdf,.docx,.txt" files={files}
+            label={`Candidate resumes (up to ${MAX_FILES})`} hint={`Up to ${MAX_FILES} resumes: PDF, DOCX or TXT, 5 MB each`}
+            onFiles={setFiles} />
           {tooMany && <p className="form__error" role="alert">Choose at most {MAX_FILES} files.</p>}
           {problems.length > 0 && (
             <ul className="outcomes" role="alert">

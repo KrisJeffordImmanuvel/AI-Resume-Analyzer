@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { CheckCircle2, XCircle, PlusCircle, Info, Sparkles, Cpu, Briefcase, GraduationCap } from 'lucide-react'
+import { CheckCircle2, ChevronDown, XCircle, PlusCircle, Info, Sparkles, Cpu, Briefcase, GraduationCap } from 'lucide-react'
 import Roadmap from './Roadmap.jsx'
 import Interview from './Interview.jsx'
 import ResumeQuality from './ResumeQuality.jsx'
@@ -90,56 +90,103 @@ function SourcesPanel({ sources }) {
   )
 }
 
-function ScoreCard({ score }) {
+function ScoreRing({ value }) {
+  const r = 44
+  const circumference = 2 * Math.PI * r
   return (
-    <section className="card score">
-      <div className="score__main">
-        {score.value === null ? (
-          <span className="score__value score__value--none">—</span>
-        ) : (
-          <span className="score__value">
-            {score.value}
-            <small>/100</small>
-          </span>
+    <div className="ring" role="img" aria-label={value === null ? 'No score' : `Score ${value} out of 100`}>
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <circle className="ring__track" cx="50" cy="50" r={r} />
+        {value !== null && (
+          <circle className="ring__fill" cx="50" cy="50" r={r} transform="rotate(-90 50 50)"
+            strokeDasharray={`${(circumference * value) / 100} ${circumference}`} />
         )}
-        <div>
-          <h2>Job-fit score</h2>
+      </svg>
+      <span className={value === null ? 'score__value score__value--none' : 'score__value'} aria-hidden="true">
+        {value ?? '—'}
+        {value !== null && <small>/100</small>}
+      </span>
+    </div>
+  )
+}
+
+/** The answer first: score, what it is based on, and the gaps that matter most. */
+function Summary({ result }) {
+  const { score, matched, missing } = result
+  const total = matched.length + missing.length
+  const required = score.breakdown.find((b) => b.priority === 'required')
+  const related = matched.filter((m) => m.credit < 1).length
+  const missingRequired = missing.filter((m) => m.priority === 'required').map((m) => m.skill)
+  return (
+    <section className="card summary score" aria-labelledby="summary-title">
+      <div className="summary__top">
+        <ScoreRing value={score.value} />
+        <div className="summary__text">
+          <h2 id="summary-title">Job-fit score</h2>
+          <p className="summary__headline">
+            {total
+              ? `Your resume shows ${matched.length} of the ${total} skills this job asks for.`
+              : 'The job description names no skills the app recognises, so there is no score.'}
+          </p>
           <p className="score__label">
             <Info size={14} aria-hidden="true" /> {score.label}
           </p>
         </div>
       </div>
-      {score.value !== null && (
-        <div className="meter" role="img" aria-label={`Score ${score.value} out of 100`}>
-          <div className="meter__fill" style={{ width: `${score.value}%` }} />
+      {total > 0 && (
+        <dl className="summary__stats">
+          {required && required.total > 0 && (
+            <div className="stat">
+              <dt>Required skills</dt>
+              <dd>{required.matched} <small>of {required.total}</small></dd>
+            </div>
+          )}
+          <div className="stat">
+            <dt>Matched</dt>
+            <dd>{matched.length}{related > 0 && <small> ({related} related)</small>}</dd>
+          </div>
+          <div className="stat">
+            <dt>Missing</dt>
+            <dd>{missing.length}</dd>
+          </div>
+        </dl>
+      )}
+      {missingRequired.length > 0 && (
+        <div className="summary__gaps">
+          <span>Missing required skills:</span>
+          <ul className="chips">
+            {missingRequired.map((skill) => (
+              <li key={skill} className="chip">{skill}</li>
+            ))}
+          </ul>
         </div>
       )}
-      <table className="breakdown">
-        <thead>
-          <tr>
-            <th>Priority</th>
-            <th>Points each</th>
-            <th>Named in resume</th>
-            <th>Related only (half)</th>
-          </tr>
-        </thead>
-        <tbody>
-          {score.breakdown.map((b) => (
-            <tr key={b.priority}>
-              <td>
-                <PriorityBadge priority={b.priority} />
-              </td>
-              <td>{b.weight}</td>
-              <td>
-                {b.matched} of {b.total}
-              </td>
-              <td>{b.related}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
       <details className="explain">
-        <summary>How is the score calculated?</summary>
+        <summary>Score breakdown and how it is calculated</summary>
+        <table className="breakdown">
+          <thead>
+            <tr>
+              <th>Priority</th>
+              <th>Points each</th>
+              <th>Named in resume</th>
+              <th>Related only (half)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {score.breakdown.map((b) => (
+              <tr key={b.priority}>
+                <td>
+                  <PriorityBadge priority={b.priority} />
+                </td>
+                <td>{b.weight}</td>
+                <td>
+                  {b.matched} of {b.total}
+                </td>
+                <td>{b.related}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
         <p>
           Each skill the job description asks for is worth points by priority. Your score is the points for skills
           your resume shows, divided by all the points, times 100. A skill your resume only relates to (without
@@ -158,16 +205,30 @@ function ScoreCard({ score }) {
   )
 }
 
-function SkillSection({ icon: Icon, tone, title, hint, explain, items, render }) {
+/** A report section that can be collapsed, so the report stays short. */
+function Section({ icon: Icon, tone, title, count, badge, defaultOpen = false, children }) {
   return (
-    <section className="card">
-      <h2 className={`section-title section-title--${tone}`}>
-        <Icon size={18} aria-hidden="true" /> {title} <span className="count">{items.length}</span>
-      </h2>
+    <details className="card section" open={defaultOpen}>
+      <summary className="section__summary">
+        <h2 className={`section-title section-title--${tone}`}>
+          <Icon size={18} aria-hidden="true" /> {title}
+          {count !== undefined && <span className="count">{count}</span>}
+          {badge}
+        </h2>
+        <ChevronDown size={18} aria-hidden="true" className="section__chevron" />
+      </summary>
+      <div className="section__body">{children}</div>
+    </details>
+  )
+}
+
+function SkillSection({ icon, tone, title, hint, explain, items, render, defaultOpen }) {
+  return (
+    <Section icon={icon} tone={tone} title={title} count={items.length} defaultOpen={defaultOpen}>
       {hint && <p className="muted">{hint}</p>}
       {explain}
       {items.length === 0 ? <p className="muted">None.</p> : <ul className="skills">{items.map(render)}</ul>}
-    </section>
+    </Section>
   )
 }
 
@@ -188,11 +249,8 @@ function Entry({ heading, sub, evidence }) {
 function ProfileSection({ profile, ai }) {
   const join = (...parts) => parts.filter(Boolean).join(' · ')
   return (
-    <section className="card">
-      <h2 className="section-title section-title--neutral">
-        <Briefcase size={18} aria-hidden="true" /> Resume profile
-        <span className="badge badge--plain">{ai ? 'Read by AI, quotes checked' : 'Built-in rules (AI off)'}</span>
-      </h2>
+    <Section icon={Briefcase} tone="neutral" title="Resume profile"
+      badge={<span className="badge badge--plain">{ai ? 'Read by AI, quotes checked' : 'Built-in rules (AI off)'}</span>}>
       {!ai && (
         <p className="muted">
           Without AI, entries are lines found under Experience/Education headings. Titles and employers are not guessed.
@@ -241,7 +299,7 @@ function ProfileSection({ profile, ai }) {
           </ul>
         </>
       )}
-    </section>
+    </Section>
   )
 }
 
@@ -249,7 +307,7 @@ function FitReport({ result }) {
   const ai = result.sources.extraction === 'ai'
   return (
     <div>
-      <SourcesPanel sources={result.sources} />
+      <Summary result={result} />
 
       {result.warnings.map((w) => (
         <p key={w} className="warning" role="status">
@@ -257,7 +315,7 @@ function FitReport({ result }) {
         </p>
       ))}
 
-      <ScoreCard score={result.score} />
+      <SourcesPanel sources={result.sources} />
 
       <SkillSection
         icon={CheckCircle2}
@@ -305,6 +363,7 @@ function FitReport({ result }) {
         icon={XCircle}
         tone="bad"
         title="Missing skills"
+        defaultOpen
         hint="Skills the job description asks for that your resume does not show."
         items={result.missing}
         render={(m) => (
