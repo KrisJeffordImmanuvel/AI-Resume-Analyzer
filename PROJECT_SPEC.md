@@ -147,4 +147,4 @@ These follow directly from the README's promises and should hold in every phase:
 | 5 | Career intelligence (role radar, trajectory timeline) | Done |
 | 6 | External evidence (GitHub, LinkedIn, fairness scan) | Done |
 | 7 | Job Provider mode | Done |
-| 8 | Hardening and final README | Not started |
+| 8 | Hardening and final README | Done |

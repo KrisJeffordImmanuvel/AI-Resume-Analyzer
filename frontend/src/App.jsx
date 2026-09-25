@@ -4,6 +4,8 @@ import HealthStatus from './HealthStatus.jsx'
 import AnalyzeForm from './AnalyzeForm.jsx'
 import AnalysisResults from './AnalysisResults.jsx'
 import Provider from './Provider.jsx'
+import RecentAnalyses from './RecentAnalyses.jsx'
+import ErrorBoundary from './ErrorBoundary.jsx'
 
 const MODE_KEY = 'app-mode'
 
@@ -18,6 +20,12 @@ function savedMode() {
 export default function App() {
   const [mode, setMode] = useState(savedMode)
   const [result, setResult] = useState(null)
+  const [historyKey, setHistoryKey] = useState(0)
+
+  function onNewResult(r) {
+    setResult(r)
+    setHistoryKey((k) => k + 1)
+  }
 
   function switchMode(next) {
     setMode(next)
@@ -49,11 +57,23 @@ export default function App() {
       <HealthStatus />
       {mode === 'seeker' ? (
         <>
-          <AnalyzeForm onResult={setResult} />
-          {result && <AnalysisResults key={result.id} result={result} />}
+          <AnalyzeForm onResult={onNewResult} />
+          <RecentAnalyses
+            refreshKey={historyKey}
+            currentId={result?.id}
+            onOpen={setResult}
+            onDeleted={(id) => result?.id === id && setResult(null)}
+          />
+          {result && (
+            <ErrorBoundary key={result.id}>
+              <AnalysisResults result={result} />
+            </ErrorBoundary>
+          )}
         </>
       ) : (
-        <Provider />
+        <ErrorBoundary>
+          <Provider />
+        </ErrorBoundary>
       )}
     </main>
   )

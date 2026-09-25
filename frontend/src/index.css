@@ -326,3 +326,14 @@ details .quote { margin-top: 6px; }
 }
 @media (min-width: 521px) { .only-narrow-sr { display: none; } }
 @media (max-width: 520px) { .matrix-key.only-narrow { display: block; overflow-wrap: anywhere; } }
+
+/* ---- Phase 8 ---- */
+.recent { padding: 12px 20px; }
+.recent summary { cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 600; }
+.recent__list { list-style: none; margin: 8px 0 0; padding: 0; }
+.recent__item { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid var(--border); }
+.recent__item--open .recent__main strong { color: var(--accent); }
+.recent__main { min-width: 0; overflow-wrap: anywhere; }
+.recent__meta { font-size: 0.8rem; margin: 2px 0 0; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.recent__actions { display: flex; gap: 6px; flex-shrink: 0; }
+.icon-button:disabled { opacity: 0.6; cursor: default; }

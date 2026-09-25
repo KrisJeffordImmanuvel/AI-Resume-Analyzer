@@ -6,6 +6,7 @@ import ResumeQuality from './ResumeQuality.jsx'
 import AtsView from './AtsView.jsx'
 import Career from './Career.jsx'
 import Evidence from './Evidence.jsx'
+import ErrorBoundary from './ErrorBoundary.jsx'
 
 const PRIORITY_LABEL = { required: 'Required', standard: 'Mentioned', preferred: 'Nice to have' }
 
@@ -328,13 +329,16 @@ export default function AnalysisResults({ result }) {
           </button>
         ))}
       </div>
-      {tab === 'report' && <FitReport result={result} />}
-      {tab === 'roadmap' && <Roadmap analysisId={result.id} />}
-      {tab === 'interview' && <Interview analysisId={result.id} />}
-      {tab === 'quality' && <ResumeQuality analysisId={result.id} />}
-      {tab === 'ats' && <AtsView analysisId={result.id} />}
-      {tab === 'career' && <Career analysisId={result.id} />}
-      {tab === 'evidence' && <Evidence analysisId={result.id} />}
+      {/* key={tab}: switching tabs clears an error shown by the previous tab */}
+      <ErrorBoundary key={tab}>
+        {tab === 'report' && <FitReport result={result} />}
+        {tab === 'roadmap' && <Roadmap analysisId={result.id} />}
+        {tab === 'interview' && <Interview analysisId={result.id} />}
+        {tab === 'quality' && <ResumeQuality analysisId={result.id} />}
+        {tab === 'ats' && <AtsView analysisId={result.id} />}
+        {tab === 'career' && <Career analysisId={result.id} />}
+        {tab === 'evidence' && <Evidence analysisId={result.id} />}
+      </ErrorBoundary>
     </div>
   )
 }

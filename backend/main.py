@@ -1,9 +1,11 @@
 """FastAPI entry point. Run from the backend folder with: uvicorn main:app --reload"""
 
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from config import get_settings
 import models  # noqa: F401  (registers tables before init_db creates them)
@@ -11,7 +13,8 @@ from database import check_db, init_db, make_engine, make_session_factory
 from routers import analyses, coaching, evidence, jobs, resume_tools
 from schemas import HealthResponse
 
-APP_VERSION = "0.8.0"
+APP_VERSION = "1.0.0"
+logger = logging.getLogger("resume_analyzer")
 
 
 @asynccontextmanager
@@ -35,6 +38,18 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(Exception)
+async def unexpected_error(request: Request, exc: Exception) -> JSONResponse:
+    """Any unhandled error: log the details for the developer, send the user a plain message."""
+    logger.exception("Unhandled error on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "Something went wrong on the server. The details were written to the backend "
+                           "window. Please try again; if it keeps happening, restart the backend."},
+    )
+
 
 app.include_router(analyses.router)
 app.include_router(coaching.router)
