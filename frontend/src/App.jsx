@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Briefcase, User } from 'lucide-react'
 import StatusIndicator from './StatusIndicator.jsx'
+import DataFooter from './DataFooter.jsx'
 import AnalyzeForm from './AnalyzeForm.jsx'
 import AnalysisResults from './AnalysisResults.jsx'
 import Provider from './Provider.jsx'
@@ -106,6 +107,7 @@ export default function App() {
           </ErrorBoundary>
         )}
       </TabPanel>
+      <DataFooter />
     </main>
   )
 }

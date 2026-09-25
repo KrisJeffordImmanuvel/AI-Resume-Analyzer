@@ -143,6 +143,11 @@ export async function addCandidates(jobId, files, { signal } = {}) {
   return data
 }
 
+export async function deleteAllData() {
+  const { data } = await api.post('/api/data/delete-all', { confirm: 'DELETE' })
+  return data
+}
+
 export async function deleteJob(jobId) {
   await api.delete(`/api/jobs/${jobId}`)
 }

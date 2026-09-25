@@ -311,6 +311,7 @@ database tables are added automatically.
 | ATS view says contact details are missing | The extracted text (shown in the same tab) has no email/phone. If your file shows them, they may be in an image or text box that software cannot read |
 | A PDF gives "No text could be extracted" | It is probably a scanned image. Export it from Word as a text-based PDF or upload the DOCX |
 | `DLL load failed` when semantic matching loads | Install the latest Microsoft Visual C++ Redistributable (x64), or leave `SEMANTIC_MATCHING=false` |
+| "The upload is too large" | One request was over 51 MB. Resumes can be up to 5 MB each; add candidates in smaller batches |
 | A tab says "This section could not be displayed" | A display error in that tab only. Click **Try again**; details are in the browser console (F12) |
 | An error mentions "the app's PowerShell window" | The server hit an unexpected error; the details are printed in that window. Try again, or restart the app |
 
@@ -319,8 +320,11 @@ database tables are added automatically.
 - Everything is stored locally in `backend\app.db` on your computer. Delete an
   analysis from **Recent analyses** to remove its resume text and everything
   generated from it, use **Delete job** in Job Provider mode to remove a job
-  and its candidates, or delete `app.db` to reset everything (it is recreated on
-  the next start).
+  and its candidates, or click **Delete all my data** at the bottom of the page
+  (type `DELETE` to confirm) to remove everything at once. The database file is
+  then compacted, so deleted text does not linger inside it.
+- Uploads are limited to 5 MB per resume and 51 MB per request; anything larger
+  is refused before it is stored.
 - With a Gemini key, resume and job-description text is sent to Google's Gemini
   API for the AI features. Without a key (or with `DEMO_MODE=true`), nothing is
   sent to any AI service.
@@ -339,7 +343,7 @@ cd $HOME\ai-resume-analyzer-app\backend
 pytest
 ```
 
-The suite (234 tests) never makes live AI or network calls. Gemini, the
+The suite (240 tests) never makes live AI or network calls. Gemini, the
 embedding model and GitHub are replaced by stand-ins, so the tests are fast,
 deterministic and free to run. To check that the frontend builds:
 
@@ -348,11 +352,28 @@ cd $HOME\ai-resume-analyzer-app\frontend
 npm run build
 ```
 
+### Dependencies and security checks
+
+Python packages are pinned to exact, tested versions in
+`backend\requirements.txt`, and the frontend's exact versions are recorded in
+`frontend\package-lock.json`, so every install is the same. To check them for
+known vulnerabilities:
+
+```powershell
+cd $HOME\ai-resume-analyzer-app\frontend
+npm audit
+cd ..\backend
+.\venv\Scripts\Activate.ps1
+pip install pip-audit      # a separate checking tool, only needed for this
+pip-audit -r requirements.txt
+```
+
 ## Project structure
 
 ```
 backend\
   main.py               FastAPI app, /health, error handling, serves the built page
+  request_limit.py      refuses oversized uploads early
   config.py             settings from backend\.env
   parsing.py            PDF / DOCX / TXT text extraction and limits
   skills.py             skill recognition against data\skills.json
