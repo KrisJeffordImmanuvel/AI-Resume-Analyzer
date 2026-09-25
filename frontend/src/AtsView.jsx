@@ -18,7 +18,7 @@ export default function AtsView({ analysisId }) {
     getAts(analysisId).then(setData).catch((e) => setError(errorMessage(e)))
   }, [analysisId])
 
-  if (error) return <section className="card"><p className="form__error">{error}</p></section>
+  if (error) return <section className="card"><p className="form__error" role="alert">{error}</p></section>
   if (!data) return <section className="card"><p className="muted">Loading…</p></section>
   const { parse, keywords, scan } = data
   return (
@@ -29,7 +29,7 @@ export default function AtsView({ analysisId }) {
 
       <section className="card">
         <h2>6-second scan</h2>
-        <p className="muted">What a recruiter likely takes in from the top of page one (heuristic).</p>
+        <p className="muted">What a recruiter likely takes in from the top of page one (a rough estimate).</p>
         <ul className="checklist">
           {scan.checks.map((c) => (
             <li key={c.label}>
@@ -42,7 +42,7 @@ export default function AtsView({ analysisId }) {
           ))}
         </ul>
         <span className="evidence__label">Top of your resume</span>
-        <pre className="raw raw--short">{scan.top_lines.join('\n')}</pre>
+        <pre className="raw raw--short" tabIndex={0} role="region" aria-label="Top of page one">{scan.top_lines.join('\n')}</pre>
       </section>
 
       <section className="card">
@@ -94,13 +94,13 @@ export default function AtsView({ analysisId }) {
         </div>
         <p className="muted">Headings recognised: {parse.headings.length ? parse.headings.join(', ') : 'none'}</p>
         {parse.issues.length > 0 && (
-          <ul className="notices">
+          <ul className="notices notices--warn">
             {parse.issues.map((i) => (
               <li key={i}>{i}</li>
             ))}
           </ul>
         )}
-        <pre className="raw">{parse.text}</pre>
+        <pre className="raw" tabIndex={0} role="region" aria-label="Extracted resume text">{parse.text}</pre>
       </section>
     </>
   )

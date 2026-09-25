@@ -1,6 +1,8 @@
 import axios from 'axios'
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+// The built app is served by the backend itself, so it calls its own address.
+// Only the development server (npm run dev, port 5173) needs the backend's URL.
+export const API_BASE_URL = import.meta.env.DEV ? import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000' : ''
 
 // Generous timeout: an analysis may wait on Gemini and, the first time, on the
 // semantic model download.
@@ -20,12 +22,24 @@ export async function createAnalysis({ resumeFile, jdFile, jdText }) {
   return data
 }
 
+export async function getSamples() {
+  const { data } = await api.get('/api/samples')
+  return data
+}
+
+// Same limit as the server (parsing.py MAX_TEXT_CHARS).
+export const MAX_TEXT_CHARS = 100000
+
 /** Turn an axios error into one readable sentence. */
 export function errorMessage(err) {
   const detail = err?.response?.data?.detail
+  // The server's form reader rejects very large pasted text with a technical message.
+  if (typeof detail === 'string' && detail.startsWith('Part exceeded maximum size')) {
+    return `The pasted text is too long. Please shorten it to under ${MAX_TEXT_CHARS.toLocaleString('en-US')} characters.`
+  }
   if (typeof detail === 'string') return detail
   if (Array.isArray(detail)) return detail.map((d) => d.msg).join('; ')
-  if (err?.request && !err?.response) return `Could not reach the backend at ${API_BASE_URL}. Is uvicorn running?`
+  if (err?.request && !err?.response) return 'Could not reach the app server. Make sure it is still running (start.ps1), then try again.'
   return err?.message || 'Something went wrong.'
 }
 
@@ -121,6 +135,10 @@ export async function addCandidates(jobId, files) {
   // Each candidate may wait on AI, so allow plenty of time for a batch.
   const { data } = await api.post(`/api/jobs/${jobId}/candidates`, form, { timeout: 900000 })
   return data
+}
+
+export async function deleteJob(jobId) {
+  await api.delete(`/api/jobs/${jobId}`)
 }
 
 export async function removeCandidate(jobId, analysisId) {

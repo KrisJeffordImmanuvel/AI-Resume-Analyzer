@@ -42,7 +42,7 @@ function GitHubCard({ analysisId, detected, initial }) {
           {busy ? 'Checking…' : data ? 'Check again' : 'Check GitHub'}
         </button>
       </div>
-      {error && <p className="form__error">{error}</p>}
+      {error && <p className="form__error" role="alert">{error}</p>}
       {data && (
         <>
           <p className="method"><Info size={14} aria-hidden="true" /> {data.label}</p>
@@ -133,6 +133,7 @@ function LinkedInCard({ analysisId, initial }) {
         roles, dates and skills with your resume.
       </p>
       <textarea rows={8} maxLength={50000} value={text} onChange={(e) => setText(e.target.value)}
+        aria-label="Your LinkedIn Experience section"
         placeholder={'Experience\nSoftware Engineer\nExample Fintech Pvt Ltd · Full-time\nJan 2022 - Present · 2 yrs 9 mos'} />
       <div className="form__actions">
         <button type="button" className="primary" onClick={run} disabled={busy || !text.trim()}>
@@ -140,11 +141,11 @@ function LinkedInCard({ analysisId, initial }) {
           {busy ? 'Comparing…' : 'Compare with resume'}
         </button>
       </div>
-      {error && <p className="form__error">{error}</p>}
+      {error && <p className="form__error" role="alert">{error}</p>}
       {data && (
         <div className="li-result">
           <SourceNote source={data.source} model={data.model} fallbackReason={data.fallback_reason}
-            notices={data.notices} fallbackLabel="Pattern-based comparison (no AI)" />
+            notices={data.notices} fallbackLabel="Compared using the app's built-in rules (no AI)" />
           <p className="method"><Info size={14} aria-hidden="true" /> {data.label}</p>
           <h3 className="subhead">Roles</h3>
           {data.roles.length === 0 ? <p className="muted">No dated roles found on either side.</p> : (
@@ -218,7 +219,7 @@ function FairnessCard({ analysisId }) {
   return (
     <section className="card">
       <h2><Scale size={18} aria-hidden="true" /> Fairness scan</h2>
-      {error && <p className="form__error">{error}</p>}
+      {error && <p className="form__error" role="alert">{error}</p>}
       {!data && !error && <p className="muted">Scanning…</p>}
       {data && (
         <>
@@ -240,7 +241,7 @@ export default function Evidence({ analysisId }) {
   useEffect(() => {
     getEvidence(analysisId).then(setSaved).catch((e) => setError(errorMessage(e)))
   }, [analysisId])
-  if (error) return <section className="card"><p className="form__error">{error}</p></section>
+  if (error) return <section className="card"><p className="form__error" role="alert">{error}</p></section>
   if (!saved) return <section className="card"><p className="muted">Loading…</p></section>
   return (
     <>

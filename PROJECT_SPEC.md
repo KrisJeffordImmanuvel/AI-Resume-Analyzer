@@ -34,38 +34,19 @@ guessing — the app never fabricates a fact about a candidate.
 > README's setup steps translated to PowerShell; the maintained copy lives in
 > `README.md`.
 
-### Backend
-
 ```powershell
-cd backend
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-Copy-Item .env.example .env
+.\setup.ps1   # once: venv, packages, backend\.env from the template, frontend build
+.\start.ps1   # every day: the whole app at http://localhost:8000
 ```
 
 Edit `backend\.env` and fill in `GOOGLE_API_KEY` (get one free, no billing
 required, at https://aistudio.google.com/apikey) to enable live AI features.
 Leaving it blank, or setting `DEMO_MODE=true`, runs the app fully in its
-deterministic fallback mode — useful for development without a key.
+deterministic fallback mode.
 
-```powershell
-uvicorn main:app --reload
-```
-
-The API serves at `http://localhost:8000`; `/health` reports whether AI is
-configured.
-
-### Frontend
-
-```powershell
-cd frontend
-npm install
-Copy-Item .env.example .env   # only needed if the backend isn't on localhost:8000
-npm run dev
-```
-
-Open `http://localhost:5173`.
+Development mode (instant reload): `uvicorn main:app --reload` in `backend`
+(with the venv active) and `npm run dev` in `frontend`, then open
+`http://localhost:5173`.
 
 ### Tests
 

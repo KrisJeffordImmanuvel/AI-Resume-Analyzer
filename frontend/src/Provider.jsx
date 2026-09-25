@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Briefcase, ClipboardPaste, EyeOff, FileText, Loader2, Plus, Trash2, Upload, Users, Check, Minus, X, Info } from 'lucide-react'
-import { addCandidates, createJob, errorMessage, getAnalysis, getJob, listJobs, removeCandidate } from './api.js'
+import { addCandidates, createJob, deleteJob, errorMessage, getAnalysis, getJob, listJobs, removeCandidate } from './api.js'
 import AnalysisResults from './AnalysisResults.jsx'
+import { announce } from './Announcer.jsx'
+import { TabList, TabPanel } from './Tabs.jsx'
 
 const PRIORITY_LABEL = { required: 'Required', standard: 'Mentioned', preferred: 'Nice to have' }
 const PRIORITY_SHORT = { required: 'Req', standard: 'Mid', preferred: 'Nice' }
@@ -34,7 +36,9 @@ function NewJobForm({ onCreated, onCancel }) {
     setBusy(true)
     setError(null)
     try {
-      onCreated(await createJob({ title: title.trim(), jdFile: mode === 'upload' ? file : null, jdText: text }))
+      const created = await createJob({ title: title.trim(), jdFile: mode === 'upload' ? file : null, jdText: text })
+      announce(`Job "${created.title}" created. You can now add candidates.`)
+      onCreated(created)
     } catch (err) {
       setError(errorMessage(err))
     } finally {
@@ -50,21 +54,23 @@ function NewJobForm({ onCreated, onCancel }) {
       </label>
       <fieldset className="field">
         <legend className="field__label">Job description</legend>
-        <div className="tabs">
-          <button type="button" className={mode === 'paste' ? 'tab tab--active' : 'tab'} onClick={() => setMode('paste')}>
-            <ClipboardPaste size={16} aria-hidden="true" /> Paste text
-          </button>
-          <button type="button" className={mode === 'upload' ? 'tab tab--active' : 'tab'} onClick={() => setMode('upload')}>
-            <Upload size={16} aria-hidden="true" /> Upload .txt
-          </button>
-        </div>
-        {mode === 'paste' ? (
-          <textarea rows={8} value={text} onChange={(e) => setText(e.target.value)} placeholder="Paste the full job description…" />
-        ) : (
-          <input type="file" accept=".txt" onChange={(e) => setFile(e.target.files[0] || null)} />
-        )}
+        <TabList
+          id="job-jd"
+          label="How to add the job description"
+          tabs={[['paste', 'Paste text', ClipboardPaste], ['upload', 'Upload .txt', Upload]]}
+          value={mode}
+          onChange={setMode}
+        />
+        <TabPanel id="job-jd" value={mode} className="field">
+          {mode === 'paste' ? (
+            <textarea rows={8} value={text} onChange={(e) => setText(e.target.value)} aria-label="Job description text"
+              placeholder="Paste the full job description…" />
+          ) : (
+            <input type="file" accept=".txt" aria-label="Job description file (.txt)" onChange={(e) => setFile(e.target.files[0] || null)} />
+          )}
+        </TabPanel>
       </fieldset>
-      {error && <p className="form__error">{error}</p>}
+      {error && <p className="form__error" role="alert">{error}</p>}
       <div className="form__actions">
         <button type="submit" className="primary" disabled={busy || !ready}>
           {busy ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <Plus size={16} aria-hidden="true" />}
@@ -78,23 +84,42 @@ function NewJobForm({ onCreated, onCancel }) {
   )
 }
 
-function Cell({ cell }) {
-  const map = {
-    named: [Check, 'Named', 'cell--named'],
-    related: [Minus, 'Related (½)', 'cell--related'],
-    missing: [X, 'Missing', 'cell--missing'],
-  }
-  const [Icon, text, cls] = map[cell.status]
-  return (
-    <span className={`matrix-cell ${cls}`} title={cell.quote ? `“${cell.quote}”` : text}>
+const CELL = {
+  named: [Check, 'Named', 'cell--named'],
+  related: [Minus, 'Related (half)', 'cell--related'],
+  missing: [X, 'Missing', 'cell--missing'],
+}
+
+/** A matrix cell. With resume evidence it is a button that shows the quote below the table (keyboard and touch too). */
+function Cell({ cell, skill, candidate, shown, onShow }) {
+  const [Icon, text, cls] = CELL[cell.status]
+  const content = (
+    <>
       <Icon size={14} aria-hidden="true" />
       <span className="matrix-cell__text">{text}</span>
-    </span>
+    </>
+  )
+  if (!cell.quote) return <span className={`matrix-cell ${cls}`}>{content}</span>
+  return (
+    <button
+      type="button"
+      className={`matrix-cell matrix-cell--button ${cls}${shown ? ' matrix-cell--shown' : ''}`}
+      title={`“${cell.quote}”`}
+      aria-label={`${skill}, ${candidate}: ${text}. Show the resume line`}
+      aria-expanded={shown}
+      aria-controls="matrix-quote"
+      onClick={onShow}
+    >
+      {content}
+    </button>
   )
 }
 
 function Comparison({ job, blind, labels, onOpen, onRemove, openId }) {
+  const [picked, setPicked] = useState(null) // { skill, id }
   const name = (c) => (blind ? `Candidate ${labels[c.analysis_id]}` : c.filename)
+  const pickedCandidate = picked && job.candidates.find((c) => c.analysis_id === picked.id)
+  const pickedCell = pickedCandidate?.cells[picked.skill]
   const short = (c) => (blind ? labels[c.analysis_id] : c.filename.replace(/\.(pdf|docx|txt)$/i, ''))
   return (
     <>
@@ -163,14 +188,14 @@ function Comparison({ job, blind, labels, onOpen, onRemove, openId }) {
       <section className="card">
         <h2>Skill matrix</h2>
         <p className="muted">
-          Each job skill against each candidate. Hover a cell to see the resume line it is based on.
+          Each job skill against each candidate. Named: the resume names the skill (full credit). Related: the resume only relates to it (half credit). Missing: no evidence. Select a Named or Related cell to see the resume line it is based on.
         </p>
         {!blind && (
           <p className="muted matrix-key only-narrow">
             {job.candidates.map((c) => `${labels[c.analysis_id]} = ${c.filename}`).join(' · ')}
           </p>
         )}
-        <div className="table-scroll matrix-scroll">
+        <div className="table-scroll matrix-scroll" role="region" aria-label="Skill matrix table" tabIndex={0}>
           <table className="matrix">
             <thead>
               <tr>
@@ -195,12 +220,32 @@ function Comparison({ job, blind, labels, onOpen, onRemove, openId }) {
                     </span>
                   </th>
                   {job.candidates.map((c) => (
-                    <td key={c.analysis_id}><Cell cell={c.cells[s.skill]} /></td>
+                    <td key={c.analysis_id}>
+                      <Cell
+                        cell={c.cells[s.skill]}
+                        skill={s.skill}
+                        candidate={name(c)}
+                        shown={picked?.skill === s.skill && picked?.id === c.analysis_id}
+                        onShow={() =>
+                          setPicked((p) => (p?.skill === s.skill && p?.id === c.analysis_id ? null : { skill: s.skill, id: c.analysis_id }))
+                        }
+                      />
+                    </td>
                   ))}
                 </tr>
               ))}
             </tbody>
           </table>
+        </div>
+        <div id="matrix-quote" className="matrix-quote" aria-live="polite">
+          {pickedCell?.quote && (
+            <>
+              <p>
+                <strong>{picked.skill}</strong> · {name(pickedCandidate)} · {CELL[pickedCell.status][1]}
+              </p>
+              <blockquote className="quote">{pickedCell.quote}</blockquote>
+            </>
+          )}
         </div>
       </section>
     </>
@@ -258,8 +303,12 @@ export default function Provider() {
   async function upload() {
     setBusy(true)
     setError(null)
+    announce(`Analysing ${files.length} resume${files.length === 1 ? '' : 's'}.`)
     try {
       const res = await addCandidates(job.id, files)
+      const added = res.outcomes.filter((o) => o.status === 'added').length
+      const other = res.outcomes.length - added
+      announce(`${added} candidate${added === 1 ? '' : 's'} added${other ? `, ${other} not added (see the list)` : ''}. Ranking updated.`)
       setOutcomes(res.outcomes)
       setJob(res.job)
       setJobs((list) => list.map((j) => (j.id === res.job.id ? { ...j, candidate_count: res.job.candidate_count } : j)))
@@ -286,10 +335,33 @@ export default function Provider() {
     }
   }
 
+  async function removeJob() {
+    const n = job.candidates.length
+    const also = n ? ` and its ${n} candidate${n === 1 ? '' : 's'} (their resumes and reports)` : ''
+    if (!window.confirm(`Delete the job "${job.title}"${also}? This cannot be undone.`)) return
+    setError(null)
+    try {
+      await deleteJob(job.id)
+      const rest = jobs.filter((j) => j.id !== job.id)
+      setJobs(rest)
+      setJob(null)
+      setOpen(null)
+      setOutcomes([])
+      if (rest.length === 0) setCreating(true)
+      announce(`Job "${job.title}" deleted.`)
+    } catch (e) {
+      setError(errorMessage(e))
+    }
+  }
+
   async function openReport(analysisId) {
     try {
       setOpen(await getAnalysis(analysisId))
-      setTimeout(() => reportRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+      setTimeout(() => {
+        const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+        reportRef.current?.focus({ preventScroll: true })
+        reportRef.current?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' })
+      }, 50)
     } catch (e) {
       setError(errorMessage(e))
     }
@@ -314,15 +386,20 @@ export default function Provider() {
           <button type="button" className="icon-button" onClick={() => setCreating(true)} disabled={creating}>
             <Plus size={15} aria-hidden="true" /> New job
           </button>
+          {job && !creating && (
+            <button type="button" className="icon-button icon-button--danger" onClick={removeJob}>
+              <Trash2 size={15} aria-hidden="true" /> Delete job
+            </button>
+          )}
         </div>
         {creating && <NewJobForm onCreated={onCreated} onCancel={jobs.length ? () => setCreating(false) : null} />}
         {job && !creating && (
           <details className="jd-details">
             <summary>Job description ({job.jd_source === 'upload' ? job.jd_filename : 'pasted'})</summary>
-            <pre className="raw">{job.jd_text}</pre>
+            <pre className="raw" tabIndex={0} role="region" aria-label="Job description text">{job.jd_text}</pre>
           </details>
         )}
-        {error && <p className="form__error">{error}</p>}
+        {error && <p className="form__error" role="alert">{error}</p>}
       </section>
 
       {job && (
@@ -332,10 +409,11 @@ export default function Provider() {
             Upload up to {MAX_FILES} resumes at a time (PDF, DOCX or TXT). Each one is analysed with exactly the same
             engine as Job Seeker mode.
           </p>
-          <input ref={fileInput} type="file" multiple accept=".pdf,.docx,.txt" onChange={(e) => setFiles([...e.target.files])} />
-          {tooMany && <p className="form__error">Choose at most {MAX_FILES} files.</p>}
+          <input ref={fileInput} type="file" multiple accept=".pdf,.docx,.txt" aria-label={`Candidate resumes (up to ${MAX_FILES})`}
+            onChange={(e) => setFiles([...e.target.files])} />
+          {tooMany && <p className="form__error" role="alert">Choose at most {MAX_FILES} files.</p>}
           {problems.length > 0 && (
-            <ul className="outcomes">
+            <ul className="outcomes" role="alert">
               {problems.map((p) => (
                 <li key={p} className="outcome outcome--error">{p} Remove it from the selection to continue.</li>
               ))}
@@ -374,13 +452,13 @@ export default function Provider() {
       )}
 
       {open && (
-        <div ref={reportRef} className="provider-report">
+        <section ref={reportRef} className="provider-report" tabIndex={-1} aria-label="Candidate report">
           <h2 className="provider-report__title">
             Full report: {blind ? `Candidate ${labels[open.id]}` : open.resume_filename}
             <button type="button" className="icon-button" onClick={() => setOpen(null)}>Close</button>
           </h2>
           <AnalysisResults key={open.id} result={open} />
-        </div>
+        </section>
       )}
     </>
   )

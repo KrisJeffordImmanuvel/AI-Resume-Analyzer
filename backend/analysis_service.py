@@ -8,13 +8,6 @@ from matching import analyze
 from profile_extraction import extract_profile
 from semantic import Embedder, EmbedderUnavailable, best_matches
 
-FALLBACK_REASON_TEXT = {
-    "no_api_key": "no GOOGLE_API_KEY is set",
-    "demo_mode": "DEMO_MODE is on",
-    "provider_error": "the AI request failed",
-}
-
-
 def run_analysis(
     resume_text: str,
     jd_text: str,
@@ -47,10 +40,8 @@ def run_analysis(
 
     result = analyze(resume_text, jd_text, ai_skills=ai_skills, semantic=semantic if embedder else None)
 
-    # A provider error already added its own specific notice.
-    if profile["source"] == "fallback" and profile["fallback_reason"] != "provider_error":
-        reason = FALLBACK_REASON_TEXT.get(profile["fallback_reason"], "AI is unavailable")
-        notices.insert(0, f"AI extraction is off because {reason}. Showing pattern-based results instead.")
+    # AI being switched off is a normal state shown by `sources`, not a notice. A provider
+    # error adds its own notice in extract_profile.
     if profile["discarded"]:
         notices.append(
             f"{profile['discarded']} AI-extracted item(s) were discarded because their quotes "

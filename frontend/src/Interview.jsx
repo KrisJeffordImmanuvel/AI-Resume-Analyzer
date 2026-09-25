@@ -13,7 +13,7 @@ function Feedback({ fb }) {
         model={fb.model}
         fallbackReason={fb.fallback_reason}
         notices={fb.notices}
-        fallbackLabel="Rule-based feedback (no AI)"
+        fallbackLabel="Feedback from the app's built-in checks (no AI)"
       />
       {fb.rating != null && (
         <p className="feedback__rating">
@@ -80,6 +80,7 @@ function QuestionCard({ q, index }) {
       <textarea
         rows={5}
         maxLength={5000}
+        aria-label={`Your answer to question ${index + 1}`}
         placeholder="Type your answer as you would say it…"
         value={answer}
         onChange={(e) => setAnswer(e.target.value)}
@@ -91,7 +92,7 @@ function QuestionCard({ q, index }) {
         </button>
         <span className="muted">{answer.trim() ? `${answer.trim().split(/\s+/).length} words` : ''}</span>
       </div>
-      {error && <p className="form__error">{error}</p>}
+      {error && <p className="form__error" role="alert">{error}</p>}
       {feedback && <Feedback fb={feedback} />}
     </li>
   )
@@ -123,7 +124,7 @@ export default function Interview({ analysisId }) {
           {loading ? 'Working…' : 'New questions'}
         </button>
       </header>
-      {error && <p className="form__error">{error}</p>}
+      {error && <p className="form__error" role="alert">{error}</p>}
       {data && (
         <>
           <SourceNote
@@ -131,7 +132,7 @@ export default function Interview({ analysisId }) {
             model={data.model}
             fallbackReason={data.fallback_reason}
             notices={data.notices}
-            fallbackLabel="Template questions (no AI)"
+            fallbackLabel="Standard questions based on your documents (no AI)"
           />
           <ol className="questions">
             {data.questions.map((q, i) => (

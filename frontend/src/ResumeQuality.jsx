@@ -38,7 +38,7 @@ function RewriteResult({ r }) {
         model={r.model}
         fallbackReason={r.fallback_reason}
         notices={r.notices}
-        fallbackLabel="Rule-based rewrite (no AI)"
+        fallbackLabel="Rewritten using the app's built-in rules (no AI)"
       />
       <div className="before-after">
         <div>
@@ -104,12 +104,12 @@ export default function ResumeQuality({ analysisId }) {
       <section className="card">
         <h2>Bullet quality</h2>
         <p className="muted">Rule-based checks (no AI): numbers, action verbs, length, first person and filler.</p>
-        {error && <p className="form__error">{error}</p>}
+        {error && <p className="form__error" role="alert">{error}</p>}
         {!report && !error && <p className="muted">Checking…</p>}
         {report && (
           <>
             {report.notices.map((n) => (
-              <p key={n} className="warning">{n}</p>
+              <p key={n} className="info">{n}</p>
             ))}
             {s.bullets > 0 && (
               <div className="stat-row">
@@ -156,6 +156,7 @@ export default function ResumeQuality({ analysisId }) {
           resume; where a metric would help you get a [placeholder] to fill in.
         </p>
         <textarea rows={3} maxLength={600} value={draft} onChange={(e) => setDraft(e.target.value)}
+          aria-label="Bullet to rewrite"
           placeholder="- Responsible for building internal dashboards…" />
         <div className="form__actions">
           <button type="button" className="primary" onClick={rewrite} disabled={busy || !draft.trim()}>

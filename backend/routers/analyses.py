@@ -38,9 +38,17 @@ def get_embedder(settings: Settings = Depends(get_settings)) -> Embedder | None:
     return shared_embedder(settings.semantic_model) if settings.semantic_matching else None
 
 
+_OLD_AI_OFF_NOTICE = "AI extraction is off because"
+
+
 def _upgrade_legacy(result: dict) -> dict:
-    """Phase 1 results (saved before AI/semantic existed) in the current response shape."""
+    """Older saved results in the current response shape."""
     if "sources" in result:
+        notices = result["sources"].get("notices", [])
+        if any(n.startswith(_OLD_AI_OFF_NOTICE) for n in notices):
+            # Saved before AI being off stopped counting as a notice.
+            result = {**result, "sources": {**result["sources"],
+                                            "notices": [n for n in notices if not n.startswith(_OLD_AI_OFF_NOTICE)]}}
         return result
     result = dict(result)
     result.pop("method", None)
@@ -176,12 +184,9 @@ def list_analyses(
     return out
 
 
-@router.delete("/{analysis_id}", status_code=204)
-def delete_analysis(analysis_id: int, db: Session = Depends(get_db)) -> Response:
-    """Permanently delete an analysis, its resume text and everything generated from it."""
-    row = db.get(Analysis, analysis_id)
-    if row is None:
-        raise HTTPException(404, "Analysis not found.")
+def delete_analysis_rows(db: Session, row: Analysis) -> None:
+    """Delete an analysis and everything generated from it (the caller commits)."""
+    analysis_id = row.id
     set_ids = select(InterviewSet.id).where(InterviewSet.analysis_id == analysis_id)
     question_ids = select(InterviewQuestion.id).where(InterviewQuestion.set_id.in_(set_ids))
     db.execute(delete(InterviewAnswer).where(InterviewAnswer.question_id.in_(question_ids)))
@@ -189,5 +194,14 @@ def delete_analysis(analysis_id: int, db: Session = Depends(get_db)) -> Response
     for model in (InterviewSet, Roadmap, BulletRewrite, ExternalCheck, JobCandidate):
         db.execute(delete(model).where(model.analysis_id == analysis_id))
     db.delete(row)
+
+
+@router.delete("/{analysis_id}", status_code=204)
+def delete_analysis(analysis_id: int, db: Session = Depends(get_db)) -> Response:
+    """Permanently delete an analysis, its resume text and everything generated from it."""
+    row = db.get(Analysis, analysis_id)
+    if row is None:
+        raise HTTPException(404, "Analysis not found.")
+    delete_analysis_rows(db, row)
     db.commit()
     return Response(status_code=204)

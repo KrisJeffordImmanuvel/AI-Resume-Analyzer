@@ -125,3 +125,37 @@ def test_limits_and_validation(make_client):
 def test_compare_handles_no_candidates_and_legacy_results():
     out = compare("Requirements:\n- Python", [])
     assert out["candidates"] == [] and [s["skill"] for s in out["skills"]] == ["Python"]
+
+
+def test_delete_job_removes_it_and_its_candidates_permanently(make_client):
+    from models import Analysis, InterviewSet, JobCandidate
+
+    with make_client() as client:
+        job = create_job(client).json()
+        other = create_job(client, title="Other role", jd_text="Need Python").json()
+        added = upload(client, job["id"], ["sample_resume.txt", "sample_resume_devops.txt"]).json()
+        ids = [o["analysis_id"] for o in added["outcomes"]]
+        kept = upload(client, other["id"], ["sample_resume.txt"]).json()["outcomes"][0]["analysis_id"]
+        client.post(f"/api/analyses/{ids[0]}/interview")  # something generated from a candidate
+        seeker = client.post("/api/analyses", files={"resume": ("cv.txt", b"Python")}, data={"jd_text": "Python"}).json()
+
+        assert client.delete(f"/api/jobs/{job['id']}").status_code == 204
+
+        assert client.get(f"/api/jobs/{job['id']}").status_code == 404
+        assert [j["id"] for j in client.get("/api/jobs").json()] == [other["id"]]
+        for aid in ids:
+            assert client.get(f"/api/analyses/{aid}").status_code == 404
+        # Deleted candidates do not reappear in Job Seeker's list; other data is untouched.
+        assert [a["id"] for a in client.get("/api/analyses").json()] == [seeker["id"]]
+        assert client.get(f"/api/jobs/{other['id']}").json()["candidate_count"] == 1
+        assert client.get(f"/api/analyses/{kept}").status_code == 200
+        session = client.app.state.session_factory()
+        assert session.query(InterviewSet).filter(InterviewSet.analysis_id.in_(ids)).count() == 0
+        assert session.query(JobCandidate).filter(JobCandidate.job_id == job["id"]).count() == 0
+        assert session.query(Analysis).count() == 2
+        session.close()
+
+
+def test_delete_unknown_job_is_404(make_client):
+    with make_client() as client:
+        assert client.delete("/api/jobs/999").status_code == 404

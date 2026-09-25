@@ -58,77 +58,88 @@ git clone https://github.com/KrisJeffordImmanuvel/AI-Resume-Analyzer.git ai-resu
 cd ai-resume-analyzer-app
 ```
 
-### 2. Backend
+### 2. Run the setup script
 
 ```powershell
-cd backend
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-Copy-Item .env.example .env
+.\setup.ps1
 ```
 
+It creates the Python environment (`backend\venv`), installs the Python and
+Node.js packages, creates your settings file `backend\.env` from the template,
+and builds the web page. The first run downloads PyTorch (used only by the
+optional semantic matching); it is large and can take several minutes.
+
 - If PowerShell says *"running scripts is disabled on this system"*, run this
-  once, then run `.\venv\Scripts\Activate.ps1` again:
+  once, then run `.\setup.ps1` again:
   ```powershell
   Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
   ```
-- After activating, the prompt starts with `(venv)`.
-- `pip install` also downloads PyTorch (used only by the optional semantic
-  matching). It is large and can take several minutes.
-- Run `Copy-Item .env.example .env` **only once**. Running it again replaces
-  your settings (including your key) with the blank template.
+- `setup.ps1` is safe to run again at any time. It never overwrites an existing
+  `backend\.env`, so your key is kept.
 
-To turn on AI, open the settings file and paste your key after
-`GOOGLE_API_KEY=` (no spaces, no quotes), then save:
+### 3. Optional: turn on AI
+
+Open the settings file and paste your key after `GOOGLE_API_KEY=` (no spaces,
+no quotes), then save:
 
 ```powershell
-notepad .env
+notepad backend\.env
 ```
 
 Check that AI works (one small real Gemini request):
 
 ```powershell
+cd backend
+.\venv\Scripts\Activate.ps1
 python check_ai.py
+cd ..
 ```
 
 It ends with `All checks passed.` or explains what failed.
 
-### 3. Frontend
-
-Open a **second** PowerShell window:
-
-```powershell
-cd $HOME\ai-resume-analyzer-app\frontend
-npm install
-```
-
 ## Running the app every day
 
-Use two PowerShell windows.
-
-**Window 1: backend**
+In PowerShell, from the project folder:
 
 ```powershell
+cd $HOME\ai-resume-analyzer-app
+.\start.ps1
+```
+
+Your browser opens **http://localhost:8000** once the app is ready. Keep this
+one window open while you use the app; press **Ctrl+C** in it to stop.
+
+The small label at the top right of the page shows the app's state. Click it
+for details:
+
+- **AI on**: AI features are working.
+- **AI off**: no key is set (or `DEMO_MODE=true`). Everything still works with
+  the built-in rules.
+- **Server offline**: the PowerShell window was closed or stopped. Run
+  `.\start.ps1` again; the page reconnects by itself.
+
+Options: `.\start.ps1 -Port 8001` uses another port; `.\start.ps1 -NoBrowser`
+does not open the browser. After an update, `start.ps1` rebuilds the web page
+automatically the first time.
+
+### Development mode (only for changing the code)
+
+Instant reload while editing uses two windows:
+
+```powershell
+# Window 1
 cd $HOME\ai-resume-analyzer-app\backend
 .\venv\Scripts\Activate.ps1
 uvicorn main:app --reload
 ```
 
-Wait for `Application startup complete.`
-
-**Window 2: frontend**
-
 ```powershell
+# Window 2
 cd $HOME\ai-resume-analyzer-app\frontend
 npm run dev
 ```
 
-Open **http://localhost:5173**. The System status card should show
-**Backend: Connected (v1.0.0)**, **Database: OK**, and **AI: Live** (with a key)
-or **Fallback mode** (without one).
-
-To stop, press **Ctrl+C** in each window.
+Then open **http://localhost:5173**.
 
 ## Using the app
 
@@ -137,9 +148,13 @@ remembers your choice).
 
 ### Job Seeker mode
 
+New here? Click **Try with sample data** to analyze the fictional sample resume
+and job description straight away.
+
 1. Choose your resume (PDF, DOCX or TXT, up to 5 MB).
 2. Paste the job description, or upload it as a `.txt` file.
-3. Click **Analyze**. With AI on, this can take up to a minute.
+3. Click **Analyze**. With AI on, this can take up to a minute. The page
+   scrolls to the results when they are ready.
 
 Past analyses appear under **Recent analyses**: **Open** shows one again;
 the bin icon deletes it permanently.
@@ -161,6 +176,8 @@ The results have seven tabs:
 1. Click **Job Provider**.
 2. Create a job: paste the job description (or upload a `.txt`) and optionally
    give it a title. Saved jobs can be picked again from the dropdown.
+   **Delete job** removes the selected job and permanently deletes its
+   candidates' resumes and reports (you are asked to confirm first).
 3. Under **Add candidates**, choose up to 10 resumes at a time and click
    **Add candidates**. Each resume is analysed with exactly the same engine as
    Job Seeker mode. A file that cannot be read, or a resume already in the
@@ -168,16 +185,25 @@ The results have seven tabs:
 4. **Ranking**: candidates by fit score, with the required skills each one is
    missing. **Report** opens that candidate's full seven-tab report; the bin icon
    removes them from the comparison.
-5. **Skill matrix**: each job skill against each candidate: ✓ Named,
-   ½ Related, ✗ Missing. Hover a cell to see the resume line behind it.
+5. **Skill matrix**: each job skill against each candidate: ✓ Named (full
+   credit), − Related (half credit), ✗ Missing. Click a Named or Related cell
+   (or press Enter on it) to see the resume line behind it.
 6. **Blind review** hides file names and shows Candidate A, B, C… instead.
+
+### Keyboard and screen readers
+
+- Everything works with the keyboard. **Tab** moves between controls (with a
+  visible focus ring); in a row of tabs (mode, report sections, Paste/Upload),
+  **Left/Right**, **Home** and **End** switch tabs.
+- Screen readers announce when an analysis starts and finishes (with the
+  score), and when candidates are added in Job Provider mode.
 
 ### Try it with the sample files
 
 The `samples` folder has fictional resumes and a job description.
 
-- **Job Seeker**: `samples\sample_resume.txt` with
-  `samples\sample_job_description.txt` gives **69/100** without AI: 8 matched
+- **Job Seeker**: **Try with sample data** (or `samples\sample_resume.txt` with
+  `samples\sample_job_description.txt`) gives **69/100** without AI: 8 matched
   skills, 5 missing, 18 others. With AI the score can be higher, because
   AI-inferred evidence (e.g. GitHub Actions for CI/CD) earns half credit.
 - **Job Provider**: create a job from `sample_job_description.txt` and add
@@ -187,21 +213,24 @@ The `samples` folder has fictional resumes and a job description.
 ## How the score works
 
 - Each skill in the job description gets a priority from where it appears:
-  **Required** (weight 3) under headings like "Requirements" or "Must have";
-  **Nice to have** (weight 1) under "Preferred", "Nice to have", "Bonus" or on
-  lines saying "is a plus"; **Mentioned** (weight 2) everywhere else.
+  **Required** (3 points) under headings like "Requirements" or "Must have";
+  **Nice to have** (1 point) under "Preferred", "Nice to have", "Bonus" or on
+  lines saying "is a plus"; **Mentioned** (2 points) everywhere else.
 - Skills are recognised from a curated list of 375 skills
   (`backend\data\skills.json`). Ambiguous words are handled carefully: "react
   to incidents" is not React, "R&D" is not R, and text inside links and email
   addresses never counts.
-- **Score = matched weight ÷ total weight × 100.**
-- Match types:
-  - **Exact** (full credit): both documents use the same wording.
-  - **Literal** (full credit): same skill, different wording ("JS" and "JavaScript").
-  - **AI-inferred** (half credit): AI judged a resume line to show the skill
-    (e.g. "deployed with GitHub Actions" for CI/CD); the line is verified.
-  - **Semantic** (half credit, off by default): the most similar resume line by
-    local embeddings.
+- **Score = points for skills your resume shows ÷ all points × 100.**
+  The report explains this under **How is the score calculated?**
+- Match labels (explained in the report under **What do the labels mean?**):
+  - **Same wording** (full credit): both documents use the same words.
+  - **Other wording** (full credit): same skill, written differently ("JS" and
+    "JavaScript").
+  - **Related (AI)** (half credit): AI judged a resume line to show the skill
+    (e.g. "deployed with GitHub Actions" for CI/CD); the line is checked to be in
+    your resume.
+  - **Similar meaning** (half credit, off by default): the resume line closest in
+    meaning, found by local semantic matching.
 - AI output is checked, never trusted as-is: items whose quotes are not in the
   resume are discarded (a notice tells you how many), and titles, employers or
   dates not in their quote are removed.
@@ -209,9 +238,9 @@ The `samples` folder has fictional resumes and a job description.
 
 ## Settings (backend\.env)
 
-Edit with `notepad .env` in the `backend` folder, then **restart the backend**
-(Ctrl+C, then `uvicorn main:app --reload`). The backend reads `.env` only when
-it starts.
+Edit with `notepad backend\.env` from the project folder, then **restart the
+app** (Ctrl+C in its window, then `.\start.ps1`). Settings are read only when
+the app starts.
 
 | Setting | Default | What it does |
 |---|---|---|
@@ -225,13 +254,15 @@ it starts.
 | `SEMANTIC_THRESHOLD` | `0.6` | Minimum similarity (0–1) for a semantic match |
 | `GITHUB_TOKEN` | *(blank)* | Optional token with no scopes; raises the GitHub check's limit from 60 to 5,000 requests per hour |
 | `DATABASE_URL` | `backend\app.db` | Where analyses are stored (SQLite) |
-| `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Web addresses allowed to call the backend |
+| `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Web addresses allowed to call the backend (development mode only) |
 
-The frontend needs no settings unless the backend runs somewhere other than
-`http://localhost:8000`. In that case copy `frontend\.env.example` to
+The frontend needs no settings. In development mode only, if the backend runs
+somewhere other than `http://localhost:8000`, copy `frontend\.env.example` to
 `frontend\.env` and set `VITE_API_BASE_URL`.
 
 ### Checking AI
+
+From the `backend` folder, with `.\venv\Scripts\Activate.ps1` run first:
 
 ```powershell
 python check_ai.py            # key, model, one tiny request; semantic model if enabled
@@ -240,34 +271,32 @@ python check_ai.py --models   # list the Gemini models your key can use and ping
 
 ## Updating to a new version
 
-Stop the backend and frontend (Ctrl+C), then:
+Stop the app (Ctrl+C in its window), then:
 
 ```powershell
 cd $HOME\ai-resume-analyzer-app
 git checkout main
 git pull
-cd backend
-.\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-cd ..\frontend
-npm install
+.\setup.ps1
+.\start.ps1
 ```
 
-Then start both again. Your `backend\.env`, `backend\app.db`, `venv` and
-`node_modules` are not touched by updates; new database tables are added
-automatically.
+Your `backend\.env` and `backend\app.db` are not touched by updates; new
+database tables are added automatically.
 
 ## Troubleshooting
 
 | Problem | Cause and fix |
 |---|---|
-| `Error loading ASGI app. Could not import module "main"` | uvicorn was started outside the `backend` folder. Run `cd $HOME\ai-resume-analyzer-app\backend` first |
-| `python: can't open file ...check_ai.py` | Same: run it from the `backend` folder |
-| Prompt does not start with `(venv)` | Run `.\venv\Scripts\Activate.ps1` in the `backend` folder |
 | "running scripts is disabled on this system" | Run `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned` once |
-| Page says **Backend: Not reachable** | The backend is not running. Start it in window 1, then click **Recheck** |
-| You changed `.env` but nothing changed | Restart the backend (Ctrl+C, then `uvicorn main:app --reload`) |
-| AI shows **Fallback mode** although you set a key | Check the key line with `[bool](Select-String -Path .env -Pattern '^GOOGLE_API_KEY=\S')` (prints `True` without showing the key), then restart the backend. Make sure only **one** backend window is running: an old one can keep answering on port 8000 |
+| "setup.ps1 is not digitally signed" | The files came from a downloaded ZIP. Run `Unblock-File .\setup.ps1, .\start.ps1` once |
+| "The app is not set up yet" | Run `.\setup.ps1` first |
+| "Port 8000 is already in use" | The app is already running in another window. Use that window (or open http://localhost:8000), or close it and run `.\start.ps1` again |
+| The page says "The app's web page has not been built yet" | The server was started without `start.ps1`. Stop it and run `.\start.ps1`, which builds the page |
+| The label at the top shows **Server offline** | The app's PowerShell window was closed or stopped. Run `.\start.ps1` again |
+| You changed `.env` but nothing changed | Restart the app (Ctrl+C in its window, then `.\start.ps1`) |
+| The label shows **AI off** although you set a key | Check the key line with `[bool](Select-String -Path backend\.env -Pattern '^GOOGLE_API_KEY=\S')` (prints `True` without showing the key), then restart the app. Make sure only **one** app window is running |
+| `python: can't open file ...check_ai.py` | Run it from the `backend` folder, after `.\venv\Scripts\Activate.ps1` |
 | `404 NOT_FOUND ... model is no longer available` | Set `GEMINI_MODEL` to a model from `python check_ai.py --models` |
 | `503 UNAVAILABLE ... high demand` | Google is busy. The app retries and then falls back; add backups with `GEMINI_FALLBACK_MODELS` |
 | `notepad .env` asks to create a new file | You are in the wrong folder; the settings file is `backend\.env` |
@@ -276,13 +305,14 @@ automatically.
 | A PDF gives "No text could be extracted" | It is probably a scanned image. Export it from Word as a text-based PDF or upload the DOCX |
 | `DLL load failed` when semantic matching loads | Install the latest Microsoft Visual C++ Redistributable (x64), or leave `SEMANTIC_MATCHING=false` |
 | A tab says "This section could not be displayed" | A display error in that tab only. Click **Try again**; details are in the browser console (F12) |
-| An error mentions "the backend window" | The backend hit an unexpected error; the details are printed in window 1. Restart the backend and try again |
+| An error mentions "the app's PowerShell window" | The server hit an unexpected error; the details are printed in that window. Try again, or restart the app |
 
 ## Privacy and your data
 
 - Everything is stored locally in `backend\app.db` on your computer. Delete an
   analysis from **Recent analyses** to remove its resume text and everything
-  generated from it, or delete `app.db` to reset everything (it is recreated on
+  generated from it, use **Delete job** in Job Provider mode to remove a job
+  and its candidates, or delete `app.db` to reset everything (it is recreated on
   the next start).
 - With a Gemini key, resume and job-description text is sent to Google's Gemini
   API for the AI features. Without a key (or with `DEMO_MODE=true`), nothing is
@@ -302,7 +332,7 @@ cd $HOME\ai-resume-analyzer-app\backend
 pytest
 ```
 
-The suite (215 tests) never makes live AI or network calls. Gemini, the
+The suite (228 tests) never makes live AI or network calls. Gemini, the
 embedding model and GitHub are replaced by stand-ins, so the tests are fast,
 deterministic and free to run. To check that the frontend builds:
 
@@ -315,7 +345,7 @@ npm run build
 
 ```
 backend\
-  main.py               FastAPI app, /health, error handling
+  main.py               FastAPI app, /health, error handling, serves the built page
   config.py             settings from backend\.env
   parsing.py            PDF / DOCX / TXT text extraction and limits
   skills.py             skill recognition against data\skills.json
@@ -333,6 +363,8 @@ backend\
   tests\                pytest suite
 frontend\src\           React + Vite user interface
 samples\                fictional resumes and a job description
+setup.ps1               one-time setup (safe to run again)
+start.ps1               starts the app at http://localhost:8000
 PROJECT_SPEC.md         feature map, derived requirements and build phases
 ```
 

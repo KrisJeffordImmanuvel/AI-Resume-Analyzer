@@ -131,7 +131,7 @@ function Timeline({ timeline, profileSource }) {
       <h2>Career timeline</h2>
       <p className="muted">
         Built only from dated entries in your resume
-        {profileSource === 'ai' ? ' (AI-extracted, quotes verified)' : ' (pattern-based, no AI)'}.
+        {profileSource === 'ai' ? ' (read by AI, quotes checked)' : ' (read with built-in rules)'}.
         {timeline.career_span_months != null &&
           ` ${timeline.roles} role(s) over ${fmtMonths(timeline.career_span_months)}.`}
       </p>
@@ -187,7 +187,7 @@ export default function Career({ analysisId }) {
     getCareer(analysisId).then(setData).catch((e) => setError(errorMessage(e)))
   }, [analysisId])
 
-  if (error) return <section className="card"><p className="form__error">{error}</p></section>
+  if (error) return <section className="card"><p className="form__error" role="alert">{error}</p></section>
   if (!data) return <section className="card"><p className="muted">Loading…</p></section>
   return (
     <>
