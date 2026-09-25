@@ -1,0 +1,20 @@
+Meera Iyer
+Frontend Developer | Pune, India | meera.iyer@example.com
+
+SUMMARY
+Frontend developer with 3 years of experience building accessible web apps in React and TypeScript.
+
+EXPERIENCE
+Frontend Developer, Example Commerce (Jan 2022 - Present)
+- Built a React and TypeScript checkout used by 500k monthly users; raised conversion by 8%.
+- Wrote Jest and Cypress tests, taking coverage from 30% to 80%.
+- Worked with backend teams on REST APIs written in Node.js.
+
+Web Developer Intern, Sample Studio (Jun 2021 - Dec 2021)
+- Built responsive pages with HTML, CSS and JavaScript.
+
+SKILLS
+JavaScript, TypeScript, React, Redux, HTML, CSS, Node.js, Jest, Cypress, Git, Agile
+
+EDUCATION
+B.E. Information Technology, Example Institute of Technology, 2021

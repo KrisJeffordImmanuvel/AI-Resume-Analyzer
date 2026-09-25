@@ -4,15 +4,14 @@ An evidence-grounded resume/job-description analysis platform for job seekers
 and recruiters. See [PROJECT_SPEC.md](PROJECT_SPEC.md) for the full feature map
 and build plan.
 
-> **Status: Phase 6.** Upload a resume (PDF, DOCX or TXT) and a job description
-> (pasted text or a .txt file) to get a job-fit score with matched and missing
-> skills, each backed by a verbatim quote. Skills are matched against a curated
-> list of 375 skills (`backend\data\skills.json`). With a Gemini key, AI also
-> extracts a resume profile; every AI quote is checked against the resume and
-> dropped if it is not there. Results have seven tabs: **Fit report**,
-> **Learning roadmap**, **Mock interview**, **Resume quality**, **ATS view**,
-> **Career** and **Evidence** (GitHub check, LinkedIn consistency check and a
-> fairness scan).
+> **Status: Phase 7.** Two modes, switched at the top of the page.
+> **Job Seeker**: upload a resume (PDF, DOCX or TXT) and a job description
+> (pasted text or a .txt file) for an evidence-backed fit report with seven
+> tabs: Fit report, Learning roadmap, Mock interview, Resume quality, ATS view,
+> Career and Evidence. **Job Provider**: save a job description once, upload
+> several candidate resumes, and compare them in a ranking and a skill matrix,
+> using exactly the same analysis engine. Every quote shown is copied from the
+> source documents, and AI output that cannot be found there is discarded.
 
 ## Requirements (Windows)
 
@@ -95,7 +94,9 @@ Open `http://localhost:5173`.
 
 ### Try it with the sample files
 
-The `samples` folder has a fictional resume and job description:
+The `samples` folder has fictional resumes and a job description.
+
+For **Job Seeker** mode:
 
 1. Under **Resume**, click **Choose File** and pick `samples\sample_resume.txt`.
 2. Under **Job description**, click **Upload .txt** and pick
@@ -229,6 +230,32 @@ dependency is mocked so tests are deterministic and free to run.
   needed to judge skills (date of birth, marital status, religion, family
   details, photo). Each flag quotes the exact line. The app's scores never use
   any of these details.
+
+## Job Provider mode
+
+1. Click **Job Provider** at the top. (The app remembers the last mode.)
+2. Create a job: paste the job description (or upload a .txt) and optionally
+   give it a title; it defaults to the description's first line. Saved jobs
+   can be chosen again from the dropdown later.
+3. Under **Add candidates**, choose up to 10 resumes at a time (PDF, DOCX or
+   TXT) and click **Add candidates**. Each resume is analysed with exactly the
+   same engine as Job Seeker mode. A file that cannot be read, or a resume
+   already in the comparison, is reported without stopping the others.
+4. **Ranking**: candidates by fit score, with required skills matched and the
+   required skills each one is missing. **Report** opens that candidate's full
+   report (all seven tabs); the bin icon removes a candidate from the
+   comparison (the analysis itself is kept).
+5. **Skill matrix**: every job skill against every candidate: Named (named in
+   the resume), Related (½ credit, e.g. AI-inferred) or Missing. Hover a cell
+   to see the resume line behind it.
+6. **Blind review** hides file names and shows Candidate A, B, C… (letters
+   follow upload order, so they do not change when the ranking does).
+
+To try it, create a job from `samples\sample_job_description.txt` and add
+`sample_resume.txt`, `sample_resume_devops.txt` and
+`sample_resume_frontend.txt`. They rank 69, 59 and 24 without AI.
+
+Scores support human review; they are not a hiring decision.
 
 ## Notes
 

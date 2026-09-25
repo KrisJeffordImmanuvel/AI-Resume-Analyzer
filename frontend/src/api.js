@@ -88,3 +88,41 @@ export async function getFairness(analysisId) {
   const { data } = await api.get(`/api/analyses/${analysisId}/fairness`)
   return data
 }
+
+export async function getAnalysis(analysisId) {
+  const { data } = await api.get(`/api/analyses/${analysisId}`)
+  return data
+}
+
+// ---- Job Provider mode ----
+
+export async function listJobs() {
+  const { data } = await api.get('/api/jobs')
+  return data
+}
+
+export async function createJob({ title, jdFile, jdText }) {
+  const form = new FormData()
+  if (title) form.append('title', title)
+  if (jdFile) form.append('jd_file', jdFile)
+  else form.append('jd_text', jdText)
+  const { data } = await api.post('/api/jobs', form)
+  return data
+}
+
+export async function getJob(jobId) {
+  const { data } = await api.get(`/api/jobs/${jobId}`)
+  return data
+}
+
+export async function addCandidates(jobId, files) {
+  const form = new FormData()
+  for (const f of files) form.append('resumes', f)
+  // Each candidate may wait on AI, so allow plenty of time for a batch.
+  const { data } = await api.post(`/api/jobs/${jobId}/candidates`, form, { timeout: 900000 })
+  return data
+}
+
+export async function removeCandidate(jobId, analysisId) {
+  await api.delete(`/api/jobs/${jobId}/candidates/${analysisId}`)
+}
