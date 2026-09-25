@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Briefcase, ClipboardPaste, EyeOff, FileText, Loader2, Plus, Trash2, Upload, Users, Check, Minus, X, Info } from 'lucide-react'
-import { addCandidates, createJob, deleteJob, errorMessage, getAnalysis, getJob, listJobs, removeCandidate } from './api.js'
+import { addCandidates, createJob, deleteJob, errorMessage, getAnalysis, getJob, isCancelled, listJobs, removeCandidate } from './api.js'
+import Working from './Working.jsx'
 import AnalysisResults from './AnalysisResults.jsx'
 import { announce } from './Announcer.jsx'
 import { TabList, TabPanel } from './Tabs.jsx'
@@ -262,8 +263,10 @@ export default function Provider() {
   const [error, setError] = useState(null)
   const [blind, setBlind] = useState(false)
   const [open, setOpen] = useState(null)
+  const [progress, setProgress] = useState(null) // { index, total, name }
   const fileInput = useRef(null)
   const reportRef = useRef(null)
+  const controller = useRef(null)
 
   useEffect(() => {
     listJobs()
@@ -300,25 +303,46 @@ export default function Provider() {
     setOutcomes([])
   }
 
+  /** One request per resume, so each shows progress, fills the ranking as it finishes and can be cancelled. */
   async function upload() {
+    const batch = files
+    controller.current = new AbortController()
     setBusy(true)
     setError(null)
-    announce(`Analysing ${files.length} resume${files.length === 1 ? '' : 's'}.`)
-    try {
-      const res = await addCandidates(job.id, files)
-      const added = res.outcomes.filter((o) => o.status === 'added').length
-      const other = res.outcomes.length - added
-      announce(`${added} candidate${added === 1 ? '' : 's'} added${other ? `, ${other} not added (see the list)` : ''}. Ranking updated.`)
-      setOutcomes(res.outcomes)
-      setJob(res.job)
-      setJobs((list) => list.map((j) => (j.id === res.job.id ? { ...j, candidate_count: res.job.candidate_count } : j)))
-      setFiles([])
-      if (fileInput.current) fileInput.current.value = ''
-    } catch (e) {
-      setError(errorMessage(e))
-    } finally {
-      setBusy(false)
+    setOutcomes([])
+    announce(`Analysing ${batch.length} resume${batch.length === 1 ? '' : 's'}. You can cancel at any time.`)
+    const results = []
+    let stopped = false
+    for (const [index, file] of batch.entries()) {
+      if (stopped) {
+        results.push({ filename: file.name, status: 'cancelled', message: 'not added (cancelled)' })
+        continue
+      }
+      setProgress({ index, total: batch.length, name: file.name })
+      try {
+        const res = await addCandidates(job.id, [file], { signal: controller.current.signal })
+        results.push(...res.outcomes)
+        setJob(res.job)
+        setJobs((list) => list.map((j) => (j.id === res.job.id ? { ...j, candidate_count: res.job.candidate_count } : j)))
+      } catch (e) {
+        if (isCancelled(e)) {
+          stopped = true
+          results.push({ filename: file.name, status: 'cancelled', message: 'not added (cancelled)' })
+        } else {
+          results.push({ filename: file.name, status: 'error', message: errorMessage(e) })
+        }
+      }
+      setOutcomes([...results])
     }
+    const added = results.filter((o) => o.status === 'added').length
+    const other = results.length - added
+    announce(
+      `${stopped ? 'Stopped. ' : ''}${added} candidate${added === 1 ? '' : 's'} added${other ? `, ${other} not added (see the list)` : ''}.`,
+    )
+    setProgress(null)
+    setBusy(false)
+    setFiles([])
+    if (fileInput.current) fileInput.current.value = ''
   }
 
   async function remove(c) {
@@ -421,11 +445,18 @@ export default function Provider() {
           )}
           <div className="form__actions">
             <button type="button" className="primary" onClick={upload} disabled={busy || files.length === 0 || tooMany || problems.length > 0}>
-              {busy ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <Upload size={16} aria-hidden="true" />}
-              {busy ? `Analysing ${files.length} resume${files.length === 1 ? '' : 's'}…` : `Add ${files.length || ''} candidate${files.length === 1 ? '' : 's'}`}
+              <Upload size={16} aria-hidden="true" />
+              {busy ? 'Adding candidates…' : `Add ${files.length || ''} candidate${files.length === 1 ? '' : 's'}`}
             </button>
-            {busy && <span className="muted">With AI on this can take up to a minute per resume.</span>}
           </div>
+          {progress && (
+            <Working
+              key={progress.index}
+              step={`Analysing resume ${progress.index + 1} of ${progress.total}: ${progress.name}`}
+              onCancel={() => controller.current?.abort()}
+              cancelLabel={progress.total > 1 ? 'Cancel the rest' : 'Cancel'}
+            />
+          )}
           {outcomes.length > 0 && (
             <ul className="outcomes">
               {outcomes.map((o, i) => (

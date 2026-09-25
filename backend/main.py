@@ -17,8 +17,11 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from config import get_settings
 import models  # noqa: F401  (registers tables before init_db creates them)
 from database import check_db, init_db, make_engine, make_session_factory
-from routers import analyses, coaching, evidence, jobs, resume_tools, samples
+from routers import analyses, coaching, data, evidence, jobs, resume_tools, samples
 from schemas import HealthResponse
+from parsing import MAX_UPLOAD_BYTES
+from request_limit import RequestSizeLimit
+from routers.jobs import MAX_FILES_PER_UPLOAD
 
 APP_VERSION = "1.0.0"
 logger = logging.getLogger("resume_analyzer")
@@ -39,6 +42,9 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="AI Resume & Career Intelligence Platform", version=APP_VERSION, lifespan=lifespan)
 
+# 10 resumes of up to 5 MB in one Job Provider upload, plus room for the form itself.
+MAX_REQUEST_BYTES = MAX_FILES_PER_UPLOAD * MAX_UPLOAD_BYTES + 1024 * 1024
+app.add_middleware(RequestSizeLimit, max_bytes=MAX_REQUEST_BYTES)  # added first, so CORS wraps its replies
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_settings().cors_origins,
@@ -65,6 +71,7 @@ app.include_router(resume_tools.router)
 app.include_router(evidence.router)
 app.include_router(jobs.router)
 app.include_router(samples.router)
+app.include_router(data.router)
 
 
 @app.get("/health", response_model=HealthResponse)
@@ -80,6 +87,7 @@ def health(request: Request) -> HealthResponse:
         database="ok" if check_db(request.app.state.engine) else "error",
         ai_model=settings.gemini_model if settings.ai_enabled else None,
         semantic_matching="enabled" if settings.semantic_matching else "disabled",
+        ai_timeout_seconds=settings.ai_timeout_seconds,
     )
 
 

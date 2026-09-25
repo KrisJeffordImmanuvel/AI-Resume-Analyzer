@@ -51,5 +51,5 @@ def test_openapi_documents_health_fields(make_client):
     fields = schema["components"]["schemas"][ref.rsplit("/", 1)[-1]]["properties"]
     assert set(fields) == {
         "status", "version", "ai_configured", "demo_mode", "ai_mode", "fallback_reason", "database",
-        "ai_model", "semantic_matching",
+        "ai_model", "semantic_matching", "ai_timeout_seconds",
     }

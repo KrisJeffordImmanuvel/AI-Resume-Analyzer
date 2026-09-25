@@ -402,3 +402,15 @@ textarea:focus-visible, .text-input:focus-visible, select:focus-visible { outlin
   .spin { animation: none; }
 }
 .icon-button--danger { color: var(--bad); }
+
+/* ---- Long waits ---- */
+.working { display: grid; gap: 4px; }
+.working__line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; }
+.working__time { font-variant-numeric: tabular-nums; color: var(--muted); }
+.working__hint { margin: 0; }
+.outcome--cancelled { background: var(--info-bg); color: var(--info); }
+
+/* ---- Your data ---- */
+.data-footer { margin-top: 48px; padding-top: 16px; border-top: 1px solid var(--border); display: grid; gap: 8px; justify-items: start; }
+.data-footer .muted { display: flex; gap: 6px; align-items: flex-start; margin: 0; }
+.data-footer .muted svg { flex-shrink: 0; margin-top: 3px; }

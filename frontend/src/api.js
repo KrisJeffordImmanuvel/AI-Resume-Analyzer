@@ -4,21 +4,28 @@ import axios from 'axios'
 // Only the development server (npm run dev, port 5173) needs the backend's URL.
 export const API_BASE_URL = import.meta.env.DEV ? import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000' : ''
 
-// Generous timeout: an analysis may wait on Gemini and, the first time, on the
-// semantic model download.
+// The server stops waiting for AI after AI_TIMEOUT_SECONDS (at most 240), so 5 minutes
+// leaves room; the first run with semantic matching on also downloads its model.
 export const api = axios.create({ baseURL: API_BASE_URL, timeout: 300000 })
+
+/** True when the request was stopped with Cancel (an AbortController signal). */
+export const isCancelled = (err) => axios.isCancel(err) || err?.code === 'ERR_CANCELED'
+
 
 export async function getHealth() {
   const { data } = await api.get('/health', { timeout: 10000 })
   return data
 }
 
-export async function createAnalysis({ resumeFile, jdFile, jdText }) {
+export async function createAnalysis({ resumeFile, jdFile, jdText }, { signal, onSent } = {}) {
   const form = new FormData()
   form.append('resume', resumeFile)
   if (jdFile) form.append('jd_file', jdFile)
   else form.append('jd_text', jdText)
-  const { data } = await api.post('/api/analyses', form)
+  const { data } = await api.post('/api/analyses', form, {
+    signal,
+    onUploadProgress: (e) => onSent && e.total && e.loaded >= e.total && onSent(),
+  })
   return data
 }
 
@@ -129,11 +136,15 @@ export async function getJob(jobId) {
   return data
 }
 
-export async function addCandidates(jobId, files) {
+export async function addCandidates(jobId, files, { signal } = {}) {
   const form = new FormData()
   for (const f of files) form.append('resumes', f)
-  // Each candidate may wait on AI, so allow plenty of time for a batch.
-  const { data } = await api.post(`/api/jobs/${jobId}/candidates`, form, { timeout: 900000 })
+  const { data } = await api.post(`/api/jobs/${jobId}/candidates`, form, { signal })
+  return data
+}
+
+export async function deleteAllData() {
+  const { data } = await api.post('/api/data/delete-all', { confirm: 'DELETE' })
   return data
 }
 

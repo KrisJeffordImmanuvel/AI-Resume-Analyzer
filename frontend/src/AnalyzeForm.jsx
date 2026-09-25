@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
-import { FileText, Upload, ClipboardPaste, Loader2, Search, FlaskConical } from 'lucide-react'
-import { MAX_TEXT_CHARS, createAnalysis, errorMessage, getSamples } from './api.js'
+import { FileText, Upload, ClipboardPaste, Search, FlaskConical } from 'lucide-react'
+import { MAX_TEXT_CHARS, createAnalysis, errorMessage, getSamples, isCancelled } from './api.js'
+import Working from './Working.jsx'
 import { announce } from './Announcer.jsx'
 import { TabList, TabPanel } from './Tabs.jsx'
 
@@ -23,22 +24,41 @@ export default function AnalyzeForm({ onResult }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
   const [usingSample, setUsingSample] = useState(false)
+  const [step, setStep] = useState('')
+  const [cancelled, setCancelled] = useState(false)
   const resumeInput = useRef(null)
+  const controller = useRef(null)
 
   const jdReady = jdMode === 'paste' ? jdText.trim().length > 0 : Boolean(jdFile)
   const canSubmit = resumeFile && jdReady && !busy
 
   async function run(input) {
+    controller.current = new AbortController()
     setBusy(true)
     setError(null)
-    announce('Analyzing. This can take up to a minute.')
+    setCancelled(false)
+    setStep('Sending your documents…')
+    announce('Analyzing. You can cancel at any time.')
     try {
-      onResult(await createAnalysis(input))
+      const result = await createAnalysis(input, {
+        signal: controller.current.signal,
+        onSent: () => setStep('Reading and scoring your documents…'),
+      })
+      onResult(result)
     } catch (err) {
-      setError(errorMessage(err))
+      if (isCancelled(err)) {
+        setCancelled(true)
+        announce('Analysis cancelled. Nothing was saved.')
+      } else {
+        setError(errorMessage(err))
+      }
     } finally {
       setBusy(false)
     }
+  }
+
+  function cancel() {
+    controller.current?.abort()
   }
 
   function handleSubmit(event) {
@@ -153,13 +173,12 @@ export default function AnalyzeForm({ onResult }) {
 
       <div className="form__actions">
         <button type="submit" className="primary" disabled={!canSubmit}>
-          {busy ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <Search size={16} aria-hidden="true" />}
+          <Search size={16} aria-hidden="true" />
           {busy ? 'Analyzing…' : 'Analyze'}
         </button>
-        {busy && (
-          <span className="muted">Reading the documents… With AI on this can take up to a minute.</span>
-        )}
       </div>
+      {busy && <Working step={step} onCancel={cancel} />}
+      {cancelled && !busy && <p className="info">Analysis cancelled. Nothing was saved.</p>}
     </form>
   )
 }

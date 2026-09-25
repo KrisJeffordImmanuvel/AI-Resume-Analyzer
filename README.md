@@ -153,7 +153,10 @@ and job description straight away.
 
 1. Choose your resume (PDF, DOCX or TXT, up to 5 MB).
 2. Paste the job description, or upload it as a `.txt` file.
-3. Click **Analyze**. With AI on, this can take up to a minute. The page
+3. Click **Analyze**. While it works you see what it is doing and for how
+   long; **Cancel** stops it (nothing is saved). With AI on it usually takes
+   under 30 seconds, and never longer than `AI_TIMEOUT_SECONDS` (90 by
+   default): after that the app uses its built-in rules instead. The page
    scrolls to the results when they are ready.
 
 Past analyses appear under **Recent analyses**: **Open** shows one again;
@@ -180,8 +183,11 @@ The results have seven tabs:
    candidates' resumes and reports (you are asked to confirm first).
 3. Under **Add candidates**, choose up to 10 resumes at a time and click
    **Add candidates**. Each resume is analysed with exactly the same engine as
-   Job Seeker mode. A file that cannot be read, or a resume already in the
-   comparison, is reported without stopping the others.
+   Job Seeker mode. Resumes are analysed one at a time ("Analysing resume 2
+   of 5") and appear in the ranking as each finishes; **Cancel the rest**
+   stops after the current one (which is then not added). A file that cannot
+   be read, or a resume already in the comparison, is reported without
+   stopping the others.
 4. **Ranking**: candidates by fit score, with the required skills each one is
    missing. **Report** opens that candidate's full seven-tab report; the bin icon
    removes them from the comparison.
@@ -248,7 +254,7 @@ the app starts.
 | `DEMO_MODE` | `false` | `true` forces fallback mode even with a key |
 | `GEMINI_MODEL` | `gemini-3.6-flash` | Main Gemini model |
 | `GEMINI_FALLBACK_MODELS` | *(none)* | Comma-separated backup models, tried when the main one is overloaded (503) or rate-limited (429). `python check_ai.py --models` suggests them |
-| `AI_TIMEOUT_SECONDS` | `60` | How long to wait for an AI answer before falling back |
+| `AI_TIMEOUT_SECONDS` | `90` | Most seconds to wait for AI, all retries and backup models included, before using the built-in rules (10–240) |
 | `SEMANTIC_MATCHING` | `false` | `true` turns on local semantic matching (see [Known limitations](#known-limitations)) |
 | `SEMANTIC_MODEL` | `sentence-transformers/all-MiniLM-L6-v2` | Embedding model for semantic matching |
 | `SEMANTIC_THRESHOLD` | `0.6` | Minimum similarity (0–1) for a semantic match |
@@ -299,11 +305,13 @@ database tables are added automatically.
 | `python: can't open file ...check_ai.py` | Run it from the `backend` folder, after `.\venv\Scripts\Activate.ps1` |
 | `404 NOT_FOUND ... model is no longer available` | Set `GEMINI_MODEL` to a model from `python check_ai.py --models` |
 | `503 UNAVAILABLE ... high demand` | Google is busy. The app retries and then falls back; add backups with `GEMINI_FALLBACK_MODELS` |
+| A notice says "no answer within 90 seconds" | Gemini was too slow this time, so the built-in rules were used. Try again later, or raise `AI_TIMEOUT_SECONDS` (up to 240) |
 | `notepad .env` asks to create a new file | You are in the wrong folder; the settings file is `backend\.env` |
 | `git pull` says "Already up to date" but a new version was announced | The pull request has not been merged on GitHub yet, or you are not on `main` (`git checkout main`) |
 | ATS view says contact details are missing | The extracted text (shown in the same tab) has no email/phone. If your file shows them, they may be in an image or text box that software cannot read |
 | A PDF gives "No text could be extracted" | It is probably a scanned image. Export it from Word as a text-based PDF or upload the DOCX |
 | `DLL load failed` when semantic matching loads | Install the latest Microsoft Visual C++ Redistributable (x64), or leave `SEMANTIC_MATCHING=false` |
+| "The upload is too large" | One request was over 51 MB. Resumes can be up to 5 MB each; add candidates in smaller batches |
 | A tab says "This section could not be displayed" | A display error in that tab only. Click **Try again**; details are in the browser console (F12) |
 | An error mentions "the app's PowerShell window" | The server hit an unexpected error; the details are printed in that window. Try again, or restart the app |
 
@@ -312,8 +320,11 @@ database tables are added automatically.
 - Everything is stored locally in `backend\app.db` on your computer. Delete an
   analysis from **Recent analyses** to remove its resume text and everything
   generated from it, use **Delete job** in Job Provider mode to remove a job
-  and its candidates, or delete `app.db` to reset everything (it is recreated on
-  the next start).
+  and its candidates, or click **Delete all my data** at the bottom of the page
+  (type `DELETE` to confirm) to remove everything at once. The database file is
+  then compacted, so deleted text does not linger inside it.
+- Uploads are limited to 5 MB per resume and 51 MB per request; anything larger
+  is refused before it is stored.
 - With a Gemini key, resume and job-description text is sent to Google's Gemini
   API for the AI features. Without a key (or with `DEMO_MODE=true`), nothing is
   sent to any AI service.
@@ -332,7 +343,7 @@ cd $HOME\ai-resume-analyzer-app\backend
 pytest
 ```
 
-The suite (228 tests) never makes live AI or network calls. Gemini, the
+The suite (240 tests) never makes live AI or network calls. Gemini, the
 embedding model and GitHub are replaced by stand-ins, so the tests are fast,
 deterministic and free to run. To check that the frontend builds:
 
@@ -341,11 +352,28 @@ cd $HOME\ai-resume-analyzer-app\frontend
 npm run build
 ```
 
+### Dependencies and security checks
+
+Python packages are pinned to exact, tested versions in
+`backend\requirements.txt`, and the frontend's exact versions are recorded in
+`frontend\package-lock.json`, so every install is the same. To check them for
+known vulnerabilities:
+
+```powershell
+cd $HOME\ai-resume-analyzer-app\frontend
+npm audit
+cd ..\backend
+.\venv\Scripts\Activate.ps1
+pip install pip-audit      # a separate checking tool, only needed for this
+pip-audit -r requirements.txt
+```
+
 ## Project structure
 
 ```
 backend\
   main.py               FastAPI app, /health, error handling, serves the built page
+  request_limit.py      refuses oversized uploads early
   config.py             settings from backend\.env
   parsing.py            PDF / DOCX / TXT text extraction and limits
   skills.py             skill recognition against data\skills.json

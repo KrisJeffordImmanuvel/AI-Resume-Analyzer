@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { CheckCircle2, CircleDashed, ExternalLink, Info, Loader2, Search, Scale, AlertTriangle } from 'lucide-react'
 import { errorMessage, getEvidence, getFairness, runGithub, runLinkedin } from './api.js'
 import SourceNote from './SourceNote.jsx'
+import Working from './Working.jsx'
 
 const fmtDate = (iso) => (iso ? new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short' }) : '')
 
@@ -141,6 +142,7 @@ function LinkedInCard({ analysisId, initial }) {
           {busy ? 'Comparing…' : 'Compare with resume'}
         </button>
       </div>
+      {busy && <Working step="Comparing your LinkedIn text with your resume…" />}
       {error && <p className="form__error" role="alert">{error}</p>}
       {data && (
         <div className="li-result">

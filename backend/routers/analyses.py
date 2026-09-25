@@ -83,6 +83,15 @@ def _to_response(row: Analysis) -> AnalysisResponse:
     )
 
 
+class Cancelled(Exception):
+    """The browser stopped waiting, so the result was not saved."""
+
+
+def cancelled_response() -> Response:
+    # Nobody is listening any more; 499 ("client closed request") keeps logs honest.
+    return Response(status_code=499)
+
+
 async def analyze_and_save(
     db: Session,
     settings: Settings,
@@ -94,8 +103,13 @@ async def analyze_and_save(
     jd_text: str,
     jd_source: str,
     jd_filename: str | None,
+    request: Request | None = None,
 ) -> Analysis:
-    """The one analysis path, shared by Job Seeker and Job Provider modes."""
+    """The one analysis path, shared by Job Seeker and Job Provider modes.
+
+    With `request`, nothing is saved if the browser stopped waiting (Cancel) while
+    the analysis ran; Cancelled is raised instead.
+    """
     # AI calls and model loading are slow and blocking, so keep them off the event loop.
     result = await run_in_threadpool(
         run_analysis,
@@ -106,6 +120,8 @@ async def analyze_and_save(
         embedder=embedder,
         semantic_threshold=settings.semantic_threshold,
     )
+    if request is not None and await request.is_disconnected():
+        raise Cancelled()
     row = Analysis(
         resume_filename=resume_filename,
         resume_text=resume_text,
@@ -123,6 +139,7 @@ async def analyze_and_save(
 
 @router.post("", response_model=AnalysisResponse, status_code=201)
 async def create_analysis(
+    request: Request,
     resume: UploadFile = File(..., description="Resume as PDF, DOCX or TXT."),
     jd_file: UploadFile | None = File(None, description="Job description as a .txt file."),
     jd_text: str | None = Form(None, description="Job description as pasted text."),
@@ -145,14 +162,18 @@ async def create_analysis(
     except ParseError as exc:
         raise HTTPException(exc.status, exc.message) from exc
 
-    row = await analyze_and_save(
-        db, settings, provider, embedder,
-        resume_filename=resume.filename or "resume",
-        resume_text=resume_text,
-        jd_text=job_text,
-        jd_source="upload" if has_file else "paste",
-        jd_filename=jd_file.filename if has_file else None,
-    )
+    try:
+        row = await analyze_and_save(
+            db, settings, provider, embedder,
+            resume_filename=resume.filename or "resume",
+            resume_text=resume_text,
+            jd_text=job_text,
+            jd_source="upload" if has_file else "paste",
+            jd_filename=jd_file.filename if has_file else None,
+            request=request,
+        )
+    except Cancelled:
+        return cancelled_response()
     return _to_response(row)
 
 

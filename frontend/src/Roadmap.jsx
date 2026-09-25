@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ExternalLink, Loader2, RefreshCw, Hammer } from 'lucide-react'
 import { errorMessage, getRoadmap } from './api.js'
 import SourceNote from './SourceNote.jsx'
+import Working from './Working.jsx'
 
 // Display only: drop a leading bullet from a quoted line (the stored quote stays verbatim).
 const clean = (quote) => quote.replace(/^[-*•·–]\s+/, '')
@@ -34,6 +35,7 @@ export default function Roadmap({ analysisId }) {
           {loading ? 'Working…' : 'Regenerate'}
         </button>
       </header>
+      {loading && <Working step="Writing your learning roadmap…" />}
       {error && <p className="form__error" role="alert">{error}</p>}
       {data && (
         <>
