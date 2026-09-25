@@ -6,6 +6,16 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 
+class SampleDocument(BaseModel):
+    filename: str
+    text: str
+
+
+class SamplesResponse(BaseModel):
+    resume: SampleDocument
+    job_description: SampleDocument
+
+
 class HealthResponse(BaseModel):
     status: Literal["ok"] = Field(description="Always 'ok' when the API is up.")
     version: str = Field(description="Backend application version.", examples=["0.1.0"])

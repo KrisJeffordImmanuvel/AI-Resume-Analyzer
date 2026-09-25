@@ -148,9 +148,13 @@ remembers your choice).
 
 ### Job Seeker mode
 
+New here? Click **Try with sample data** to analyze the fictional sample resume
+and job description straight away.
+
 1. Choose your resume (PDF, DOCX or TXT, up to 5 MB).
 2. Paste the job description, or upload it as a `.txt` file.
-3. Click **Analyze**. With AI on, this can take up to a minute.
+3. Click **Analyze**. With AI on, this can take up to a minute. The page
+   scrolls to the results when they are ready.
 
 Past analyses appear under **Recent analyses**: **Open** shows one again;
 the bin icon deletes it permanently.
@@ -179,16 +183,16 @@ The results have seven tabs:
 4. **Ranking**: candidates by fit score, with the required skills each one is
    missing. **Report** opens that candidate's full seven-tab report; the bin icon
    removes them from the comparison.
-5. **Skill matrix**: each job skill against each candidate: ✓ Named,
-   ½ Related, ✗ Missing. Hover a cell to see the resume line behind it.
+5. **Skill matrix**: each job skill against each candidate: ✓ Named (full
+   credit), − Related (half credit), ✗ Missing. Hover a cell to see the resume line behind it.
 6. **Blind review** hides file names and shows Candidate A, B, C… instead.
 
 ### Try it with the sample files
 
 The `samples` folder has fictional resumes and a job description.
 
-- **Job Seeker**: `samples\sample_resume.txt` with
-  `samples\sample_job_description.txt` gives **69/100** without AI: 8 matched
+- **Job Seeker**: **Try with sample data** (or `samples\sample_resume.txt` with
+  `samples\sample_job_description.txt`) gives **69/100** without AI: 8 matched
   skills, 5 missing, 18 others. With AI the score can be higher, because
   AI-inferred evidence (e.g. GitHub Actions for CI/CD) earns half credit.
 - **Job Provider**: create a job from `sample_job_description.txt` and add
@@ -198,21 +202,24 @@ The `samples` folder has fictional resumes and a job description.
 ## How the score works
 
 - Each skill in the job description gets a priority from where it appears:
-  **Required** (weight 3) under headings like "Requirements" or "Must have";
-  **Nice to have** (weight 1) under "Preferred", "Nice to have", "Bonus" or on
-  lines saying "is a plus"; **Mentioned** (weight 2) everywhere else.
+  **Required** (3 points) under headings like "Requirements" or "Must have";
+  **Nice to have** (1 point) under "Preferred", "Nice to have", "Bonus" or on
+  lines saying "is a plus"; **Mentioned** (2 points) everywhere else.
 - Skills are recognised from a curated list of 375 skills
   (`backend\data\skills.json`). Ambiguous words are handled carefully: "react
   to incidents" is not React, "R&D" is not R, and text inside links and email
   addresses never counts.
-- **Score = matched weight ÷ total weight × 100.**
-- Match types:
-  - **Exact** (full credit): both documents use the same wording.
-  - **Literal** (full credit): same skill, different wording ("JS" and "JavaScript").
-  - **AI-inferred** (half credit): AI judged a resume line to show the skill
-    (e.g. "deployed with GitHub Actions" for CI/CD); the line is verified.
-  - **Semantic** (half credit, off by default): the most similar resume line by
-    local embeddings.
+- **Score = points for skills your resume shows ÷ all points × 100.**
+  The report explains this under **How is the score calculated?**
+- Match labels (explained in the report under **What do the labels mean?**):
+  - **Same wording** (full credit): both documents use the same words.
+  - **Other wording** (full credit): same skill, written differently ("JS" and
+    "JavaScript").
+  - **Related (AI)** (half credit): AI judged a resume line to show the skill
+    (e.g. "deployed with GitHub Actions" for CI/CD); the line is checked to be in
+    your resume.
+  - **Similar meaning** (half credit, off by default): the resume line closest in
+    meaning, found by local semantic matching.
 - AI output is checked, never trusted as-is: items whose quotes are not in the
   resume are discarded (a notice tells you how many), and titles, employers or
   dates not in their quote are removed.
@@ -313,7 +320,7 @@ cd $HOME\ai-resume-analyzer-app\backend
 pytest
 ```
 
-The suite (222 tests) never makes live AI or network calls. Gemini, the
+The suite (226 tests) never makes live AI or network calls. Gemini, the
 embedding model and GitHub are replaced by stand-ins, so the tests are fast,
 deterministic and free to run. To check that the frontend builds:
 

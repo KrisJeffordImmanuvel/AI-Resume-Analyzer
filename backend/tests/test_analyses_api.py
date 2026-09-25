@@ -136,11 +136,32 @@ def test_ai_failure_still_returns_a_labelled_fallback_result(make_client):
     assert len([n for n in sources["notices"] if "AI" in n]) == 1  # one notice, not two
 
 
-def test_demo_mode_is_reported_in_notices(make_client):
+def test_ai_switched_off_is_reported_in_sources_not_as_a_notice(make_client):
+    # AI being off is a normal state: the UI shows it calmly from `sources`.
     with make_client(api_key="placeholder", demo_mode="true") as client:
         sources = post(client, SAMPLE_FILES).json()["sources"]
+    assert sources["extraction"] == "fallback"
     assert sources["fallback_reason"] == "demo_mode"
-    assert "DEMO_MODE" in sources["notices"][0]
+    assert sources["notices"] == []
+
+
+def test_old_ai_off_notice_is_dropped_from_saved_results(make_client):
+    from models import Analysis
+
+    with make_client() as client:
+        saved = post(client, SAMPLE_FILES).json()
+        session = client.app.state.session_factory()
+        row = session.get(Analysis, saved["id"])
+        result = dict(row.result)
+        result["sources"] = {**result["sources"], "notices": [
+            "AI extraction is off because no GOOGLE_API_KEY is set. Showing pattern-based results instead.",
+            "Something else worth knowing.",
+        ]}
+        row.result = result
+        session.commit()
+        session.close()
+        notices = client.get(f"/api/analyses/{saved['id']}").json()["sources"]["notices"]
+    assert notices == ["Something else worth knowing."]
 
 
 def test_semantic_match_through_the_api(make_client):

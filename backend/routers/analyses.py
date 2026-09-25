@@ -38,9 +38,17 @@ def get_embedder(settings: Settings = Depends(get_settings)) -> Embedder | None:
     return shared_embedder(settings.semantic_model) if settings.semantic_matching else None
 
 
+_OLD_AI_OFF_NOTICE = "AI extraction is off because"
+
+
 def _upgrade_legacy(result: dict) -> dict:
-    """Phase 1 results (saved before AI/semantic existed) in the current response shape."""
+    """Older saved results in the current response shape."""
     if "sources" in result:
+        notices = result["sources"].get("notices", [])
+        if any(n.startswith(_OLD_AI_OFF_NOTICE) for n in notices):
+            # Saved before AI being off stopped counting as a notice.
+            result = {**result, "sources": {**result["sources"],
+                                            "notices": [n for n in notices if not n.startswith(_OLD_AI_OFF_NOTICE)]}}
         return result
     result = dict(result)
     result.pop("method", None)

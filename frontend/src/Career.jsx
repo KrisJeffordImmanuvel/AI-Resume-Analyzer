@@ -131,7 +131,7 @@ function Timeline({ timeline, profileSource }) {
       <h2>Career timeline</h2>
       <p className="muted">
         Built only from dated entries in your resume
-        {profileSource === 'ai' ? ' (AI-extracted, quotes verified)' : ' (pattern-based, no AI)'}.
+        {profileSource === 'ai' ? ' (read by AI, quotes checked)' : ' (read with built-in rules)'}.
         {timeline.career_span_months != null &&
           ` ${timeline.roles} role(s) over ${fmtMonths(timeline.career_span_months)}.`}
       </p>

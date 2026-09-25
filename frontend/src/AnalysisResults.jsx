@@ -10,11 +10,23 @@ import ErrorBoundary from './ErrorBoundary.jsx'
 
 const PRIORITY_LABEL = { required: 'Required', standard: 'Mentioned', preferred: 'Nice to have' }
 
+const PRIORITY_HELP = {
+  required: 'Listed under a heading like "Requirements" or "Must have". Counts 3 points.',
+  standard: 'Named elsewhere in the job description. Counts 2 points.',
+  preferred: 'Listed under "Preferred", "Nice to have" or "Bonus". Counts 1 point.',
+}
+
 const MATCH_LABEL = {
-  exact: { text: 'Exact', title: 'Same wording in both documents' },
-  literal: { text: 'Literal', title: 'Same skill, different wording (e.g. JS and JavaScript)' },
-  ai_inferred: { text: 'AI-inferred · ½ credit', title: 'AI judged this resume quote to show the skill; the quote is verified' },
-  semantic: { text: 'Semantic · ½ credit', title: 'Most similar resume line by local embeddings' },
+  exact: { text: 'Same wording', title: 'Both documents use the same words for this skill. Full credit.' },
+  literal: { text: 'Other wording', title: 'Same skill, written differently (for example "JS" and "JavaScript"). Full credit.' },
+  ai_inferred: { text: 'Related (AI) · half credit', title: 'AI judged that this resume line shows the skill without naming it. The line is checked to be in your resume. Half credit.' },
+  semantic: { text: 'Similar meaning · half credit', title: 'The resume line closest in meaning to the skill. Half credit.' },
+}
+
+const REASON = {
+  no_api_key: 'AI is off, so the app read your resume with its built-in rules.',
+  demo_mode: 'AI is off (demo mode), so the app read your resume with its built-in rules.',
+  provider_error: 'The AI request failed, so the app read your resume with its built-in rules instead.',
 }
 
 function PriorityBadge({ priority }) {
@@ -41,29 +53,33 @@ function Quote({ evidence }) {
   )
 }
 
+/** How this report was produced, in plain words. AI being off is normal, so it is shown calmly. */
 function SourcesPanel({ sources }) {
   const ai = sources.extraction === 'ai'
+  const failed = sources.fallback_reason === 'provider_error'
   const semanticText = {
-    enabled: `on (threshold ${sources.semantic_threshold})`,
-    disabled: 'off',
-    unavailable: 'unavailable for this run',
+    enabled: 'Resume lines with a similar meaning also count, for half credit.',
+    unavailable: 'Similar-meaning matching could not run this time.',
   }[sources.semantic]
   return (
-    <section className="card sources">
+    <section className="card sources" aria-label="How this report was made">
       <div className="sources__row">
-        {ai ? <Sparkles size={16} aria-hidden="true" /> : <Cpu size={16} aria-hidden="true" />}
+        {ai ? <Sparkles size={16} aria-hidden="true" /> : <Info size={16} aria-hidden="true" />}
         <span>
-          Resume profile: <strong>{ai ? `AI (${sources.model})` : 'pattern-based fallback (no AI)'}</strong>
+          {ai
+            ? `AI read your resume (${sources.model}). Every quote shown was checked against your document.`
+            : REASON[sources.fallback_reason] || 'The app read your resume with its built-in rules.'}{' '}
+          Everything below comes from your own documents.
         </span>
       </div>
       <div className="sources__row">
         <Cpu size={16} aria-hidden="true" />
         <span>
-          Skill matching: <strong>curated skill list</strong> · semantic matching <strong>{semanticText}</strong>
+          Skills are recognised from the app&apos;s list of known skills.{semanticText && ` ${semanticText}`}
         </span>
       </div>
       {sources.notices.length > 0 && (
-        <ul className="notices">
+        <ul className={failed ? 'notices notices--warn' : 'notices'}>
           {sources.notices.map((n) => (
             <li key={n}>{n}</li>
           ))}
@@ -101,9 +117,9 @@ function ScoreCard({ score }) {
         <thead>
           <tr>
             <th>Priority</th>
-            <th>Weight</th>
+            <th>Points each</th>
             <th>Named in resume</th>
-            <th>Related only</th>
+            <th>Related only (half)</th>
           </tr>
         </thead>
         <tbody>
@@ -112,7 +128,7 @@ function ScoreCard({ score }) {
               <td>
                 <PriorityBadge priority={b.priority} />
               </td>
-              <td>×{b.weight}</td>
+              <td>{b.weight}</td>
               <td>
                 {b.matched} of {b.total}
               </td>
@@ -121,17 +137,34 @@ function ScoreCard({ score }) {
           ))}
         </tbody>
       </table>
+      <details className="explain">
+        <summary>How is the score calculated?</summary>
+        <p>
+          Each skill the job description asks for is worth points by priority. Your score is the points for skills
+          your resume shows, divided by all the points, times 100. A skill your resume only relates to (without
+          naming it) earns half its points.
+        </p>
+        <dl>
+          {['required', 'standard', 'preferred'].map((p) => (
+            <div key={p}>
+              <dt><PriorityBadge priority={p} /></dt>
+              <dd>{PRIORITY_HELP[p]}</dd>
+            </div>
+          ))}
+        </dl>
+      </details>
     </section>
   )
 }
 
-function SkillSection({ icon: Icon, tone, title, hint, items, render }) {
+function SkillSection({ icon: Icon, tone, title, hint, explain, items, render }) {
   return (
     <section className="card">
       <h2 className={`section-title section-title--${tone}`}>
         <Icon size={18} aria-hidden="true" /> {title} <span className="count">{items.length}</span>
       </h2>
       {hint && <p className="muted">{hint}</p>}
+      {explain}
       {items.length === 0 ? <p className="muted">None.</p> : <ul className="skills">{items.map(render)}</ul>}
     </section>
   )
@@ -157,7 +190,7 @@ function ProfileSection({ profile, ai }) {
     <section className="card">
       <h2 className="section-title section-title--neutral">
         <Briefcase size={18} aria-hidden="true" /> Resume profile
-        <span className="badge badge--plain">{ai ? 'AI-extracted, quotes verified' : 'Pattern-based (no AI)'}</span>
+        <span className="badge badge--plain">{ai ? 'Read by AI, quotes checked' : 'Built-in rules (AI off)'}</span>
       </h2>
       {!ai && (
         <p className="muted">
@@ -229,8 +262,21 @@ function FitReport({ result }) {
         icon={CheckCircle2}
         tone="good"
         title="Matched skills"
-        hint="Skills named in the resume earn full credit; related evidence (AI-inferred or semantic) earns half."
+        hint="Skills your resume names earn full credit. Skills it only relates to earn half."
         items={result.matched}
+        explain={
+          <details className="explain">
+            <summary>What do the labels mean?</summary>
+            <dl>
+              {Object.entries(MATCH_LABEL).map(([k, v]) => (
+                <div key={k}>
+                  <dt><span className="badge badge--plain">{v.text}</span></dt>
+                  <dd>{v.title}</dd>
+                </div>
+              ))}
+            </dl>
+          </details>
+        }
         render={(m) => (
           <li key={m.skill} className="skill">
             <div className="skill__head">
@@ -258,7 +304,7 @@ function FitReport({ result }) {
         icon={XCircle}
         tone="bad"
         title="Missing skills"
-        hint="Skills the job description asks for with no supporting evidence in the resume."
+        hint="Skills the job description asks for that your resume does not show."
         items={result.missing}
         render={(m) => (
           <li key={m.skill} className="skill">

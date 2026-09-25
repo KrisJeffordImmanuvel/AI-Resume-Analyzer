@@ -42,7 +42,7 @@ export default function Roadmap({ analysisId }) {
             model={data.model}
             fallbackReason={data.fallback_reason}
             notices={data.notices}
-            fallbackLabel="Template steps (no AI)"
+            fallbackLabel="Standard learning steps (no AI)"
           />
           {data.items.length === 0 ? (
             <p className="muted">No skill gaps: every skill in the job description is named in the resume.</p>

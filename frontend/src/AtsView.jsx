@@ -29,7 +29,7 @@ export default function AtsView({ analysisId }) {
 
       <section className="card">
         <h2>6-second scan</h2>
-        <p className="muted">What a recruiter likely takes in from the top of page one (heuristic).</p>
+        <p className="muted">What a recruiter likely takes in from the top of page one (a rough estimate).</p>
         <ul className="checklist">
           {scan.checks.map((c) => (
             <li key={c.label}>
@@ -94,7 +94,7 @@ export default function AtsView({ analysisId }) {
         </div>
         <p className="muted">Headings recognised: {parse.headings.length ? parse.headings.join(', ') : 'none'}</p>
         {parse.issues.length > 0 && (
-          <ul className="notices">
+          <ul className="notices notices--warn">
             {parse.issues.map((i) => (
               <li key={i}>{i}</li>
             ))}

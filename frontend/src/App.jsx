@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Briefcase, User } from 'lucide-react'
 import StatusIndicator from './StatusIndicator.jsx'
 import AnalyzeForm from './AnalyzeForm.jsx'
@@ -21,9 +21,25 @@ export default function App() {
   const [mode, setMode] = useState(savedMode)
   const [result, setResult] = useState(null)
   const [historyKey, setHistoryKey] = useState(0)
+  const resultsRef = useRef(null)
+  const scrollPending = useRef(false)
+
+  // Bring new results into view: they appear below the form, often off-screen.
+  useEffect(() => {
+    if (!result || !scrollPending.current || !resultsRef.current) return
+    scrollPending.current = false
+    const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    resultsRef.current.focus({ preventScroll: true })
+    resultsRef.current.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' })
+  }, [result])
+
+  function showResult(r) {
+    scrollPending.current = true
+    setResult(r)
+  }
 
   function onNewResult(r) {
-    setResult(r)
+    showResult(r)
     setHistoryKey((k) => k + 1)
   }
 
@@ -63,13 +79,15 @@ export default function App() {
           <RecentAnalyses
             refreshKey={historyKey}
             currentId={result?.id}
-            onOpen={setResult}
+            onOpen={showResult}
             onDeleted={(id) => result?.id === id && setResult(null)}
           />
           {result && (
-            <ErrorBoundary key={result.id}>
-              <AnalysisResults result={result} />
-            </ErrorBoundary>
+            <section ref={resultsRef} tabIndex={-1} className="results-anchor" aria-label="Analysis results">
+              <ErrorBoundary key={result.id}>
+                <AnalysisResults result={result} />
+              </ErrorBoundary>
+            </section>
           )}
         </>
       ) : (

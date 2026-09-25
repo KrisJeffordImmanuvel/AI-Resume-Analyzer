@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from config import get_settings
 import models  # noqa: F401  (registers tables before init_db creates them)
 from database import check_db, init_db, make_engine, make_session_factory
-from routers import analyses, coaching, evidence, jobs, resume_tools
+from routers import analyses, coaching, evidence, jobs, resume_tools, samples
 from schemas import HealthResponse
 
 APP_VERSION = "1.0.0"
@@ -64,6 +64,7 @@ app.include_router(coaching.router)
 app.include_router(resume_tools.router)
 app.include_router(evidence.router)
 app.include_router(jobs.router)
+app.include_router(samples.router)
 
 
 @app.get("/health", response_model=HealthResponse)

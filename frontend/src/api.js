@@ -22,9 +22,21 @@ export async function createAnalysis({ resumeFile, jdFile, jdText }) {
   return data
 }
 
+export async function getSamples() {
+  const { data } = await api.get('/api/samples')
+  return data
+}
+
+// Same limit as the server (parsing.py MAX_TEXT_CHARS).
+export const MAX_TEXT_CHARS = 100000
+
 /** Turn an axios error into one readable sentence. */
 export function errorMessage(err) {
   const detail = err?.response?.data?.detail
+  // The server's form reader rejects very large pasted text with a technical message.
+  if (typeof detail === 'string' && detail.startsWith('Part exceeded maximum size')) {
+    return `The pasted text is too long. Please shorten it to under ${MAX_TEXT_CHARS.toLocaleString('en-US')} characters.`
+  }
   if (typeof detail === 'string') return detail
   if (Array.isArray(detail)) return detail.map((d) => d.msg).join('; ')
   if (err?.request && !err?.response) return 'Could not reach the app server. Make sure it is still running (start.ps1), then try again.'

@@ -81,7 +81,7 @@ function NewJobForm({ onCreated, onCancel }) {
 function Cell({ cell }) {
   const map = {
     named: [Check, 'Named', 'cell--named'],
-    related: [Minus, 'Related (½)', 'cell--related'],
+    related: [Minus, 'Related (half)', 'cell--related'],
     missing: [X, 'Missing', 'cell--missing'],
   }
   const [Icon, text, cls] = map[cell.status]
@@ -163,7 +163,7 @@ function Comparison({ job, blind, labels, onOpen, onRemove, openId }) {
       <section className="card">
         <h2>Skill matrix</h2>
         <p className="muted">
-          Each job skill against each candidate. Hover a cell to see the resume line it is based on.
+          Each job skill against each candidate. Named: the resume names the skill (full credit). Related: the resume only relates to it (half credit). Missing: no evidence. Hover a cell to see the resume line it is based on.
         </p>
         {!blind && (
           <p className="muted matrix-key only-narrow">

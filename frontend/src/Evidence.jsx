@@ -144,7 +144,7 @@ function LinkedInCard({ analysisId, initial }) {
       {data && (
         <div className="li-result">
           <SourceNote source={data.source} model={data.model} fallbackReason={data.fallback_reason}
-            notices={data.notices} fallbackLabel="Pattern-based comparison (no AI)" />
+            notices={data.notices} fallbackLabel="Compared using the app's built-in rules (no AI)" />
           <p className="method"><Info size={14} aria-hidden="true" /> {data.label}</p>
           <h3 className="subhead">Roles</h3>
           {data.roles.length === 0 ? <p className="muted">No dated roles found on either side.</p> : (
