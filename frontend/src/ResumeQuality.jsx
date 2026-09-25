@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Loader2, Wand2, Copy, Check, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { errorMessage, getQuality, listRewrites, rewriteBullet } from './api.js'
 import SourceNote from './SourceNote.jsx'
+import Working from './Working.jsx'
 
 const SEVERITY_ORDER = { high: 0, medium: 1, low: 2 }
 
@@ -164,6 +165,7 @@ export default function ResumeQuality({ analysisId }) {
             {busy ? 'Rewriting…' : 'Suggest rewrites'}
           </button>
         </div>
+        {busy && <Working step="Writing suggestions…" />}
         {history.map((r) => (
           <RewriteResult key={r.id} r={r} />
         ))}

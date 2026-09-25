@@ -217,7 +217,7 @@ def extract_profile(resume_text: str, provider: AIProvider | None, fallback_reas
             }
         except AIError as exc:
             fallback_reason = "provider_error"
-            notices.append(f"AI extraction failed, so the pattern-based fallback was used instead. ({exc})")
+            notices.append(f"AI could not read the resume this time, so the app used its built-in rules instead. ({exc})")
 
     return {
         "source": "fallback",

@@ -30,6 +30,7 @@ class HealthResponse(BaseModel):
     database: Literal["ok", "error"] = Field(description="Whether the database answered a test query.")
     ai_model: str | None = Field(description="Gemini model used when AI is live, else null.")
     semantic_matching: Literal["enabled", "disabled"] = Field(description="Whether SEMANTIC_MATCHING is on.")
+    ai_timeout_seconds: float = Field(description="Most seconds one AI request may take (AI_TIMEOUT_SECONDS).")
 
 
 Priority = Literal["required", "standard", "preferred"]

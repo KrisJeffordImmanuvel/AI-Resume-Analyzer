@@ -402,3 +402,10 @@ textarea:focus-visible, .text-input:focus-visible, select:focus-visible { outlin
   .spin { animation: none; }
 }
 .icon-button--danger { color: var(--bad); }
+
+/* ---- Long waits ---- */
+.working { display: grid; gap: 4px; }
+.working__line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; }
+.working__time { font-variant-numeric: tabular-nums; color: var(--muted); }
+.working__hint { margin: 0; }
+.outcome--cancelled { background: var(--info-bg); color: var(--info); }

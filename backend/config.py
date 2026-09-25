@@ -67,7 +67,9 @@ def get_settings() -> Settings:
         gemini_fallback_models=[
             m.strip() for m in os.getenv("GEMINI_FALLBACK_MODELS", "").split(",") if m.strip()
         ],
-        ai_timeout_seconds=_float("AI_TIMEOUT_SECONDS", 60.0),
+        # The whole AI call (retries and backup models included). Capped so it always
+        # ends before the web page stops waiting (5 minutes).
+        ai_timeout_seconds=min(max(_float("AI_TIMEOUT_SECONDS", 90.0), 10.0), 240.0),
         # Off by default: calibration showed all-MiniLM-L6-v2 cannot separate related
         # from unrelated resume lines well enough to award credit (see README).
         semantic_matching=os.getenv("SEMANTIC_MATCHING", "false").strip().lower() in _TRUE_VALUES,

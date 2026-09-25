@@ -2,7 +2,7 @@
 
 from datetime import timezone
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Response, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Response, UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -12,7 +12,8 @@ from config import Settings, get_settings
 from models import Analysis, Job, JobCandidate
 from parsing import ParseError, clean_jd_text, extract_jd_file_text, extract_resume_text
 from routers.analyses import (
-    _read_limited, _upgrade_legacy, analyze_and_save, delete_analysis_rows, get_ai_provider, get_db, get_embedder,
+    Cancelled, _read_limited, _upgrade_legacy, analyze_and_save, cancelled_response, delete_analysis_rows,
+    get_ai_provider, get_db, get_embedder,
 )
 from schemas import CandidateUploadResponse, JobDetail, JobSummary
 from semantic import Embedder
@@ -97,6 +98,7 @@ def get_job(job_id: int, db: Session = Depends(get_db)) -> JobDetail:
 @router.post("/{job_id}/candidates", response_model=CandidateUploadResponse, status_code=201)
 async def add_candidates(
     job_id: int,
+    request: Request,
     resumes: list[UploadFile] = File(..., description=f"Up to {MAX_FILES_PER_UPLOAD} resumes (PDF, DOCX or TXT)."),
     db: Session = Depends(get_db),
     settings: Settings = Depends(get_settings),
@@ -120,11 +122,14 @@ async def add_candidates(
                              "message": "This resume is already in the comparison."})
             continue
         # Exactly the same path as Job Seeker mode.
-        analysis = await analyze_and_save(
-            db, settings, provider, embedder,
-            resume_filename=name, resume_text=text, jd_text=job.jd_text,
-            jd_source=job.jd_source, jd_filename=job.jd_filename,
-        )
+        try:
+            analysis = await analyze_and_save(
+                db, settings, provider, embedder,
+                resume_filename=name, resume_text=text, jd_text=job.jd_text,
+                jd_source=job.jd_source, jd_filename=job.jd_filename, request=request,
+            )
+        except Cancelled:
+            return cancelled_response()  # resumes already added in this batch stay added
         db.add(JobCandidate(job_id=job.id, analysis_id=analysis.id))
         db.commit()
         existing_texts.add(text)

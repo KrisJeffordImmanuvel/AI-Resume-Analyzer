@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Loader2, RefreshCw, Send, MessageSquareQuote } from 'lucide-react'
 import { errorMessage, getInterview, submitAnswer } from './api.js'
 import SourceNote from './SourceNote.jsx'
+import Working from './Working.jsx'
 
 const TYPE_LABEL = { skill: 'Your skill', gap: 'Skill gap', experience: 'Your experience', behavioral: 'Behavioral' }
 
@@ -92,6 +93,7 @@ function QuestionCard({ q, index }) {
         </button>
         <span className="muted">{answer.trim() ? `${answer.trim().split(/\s+/).length} words` : ''}</span>
       </div>
+      {busy && <Working step="Reviewing your answer…" />}
       {error && <p className="form__error" role="alert">{error}</p>}
       {feedback && <Feedback fb={feedback} />}
     </li>
@@ -124,6 +126,7 @@ export default function Interview({ analysisId }) {
           {loading ? 'Working…' : 'New questions'}
         </button>
       </header>
+      {loading && <Working step="Preparing interview questions…" />}
       {error && <p className="form__error" role="alert">{error}</p>}
       {data && (
         <>

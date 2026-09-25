@@ -80,6 +80,7 @@ def health(request: Request) -> HealthResponse:
         database="ok" if check_db(request.app.state.engine) else "error",
         ai_model=settings.gemini_model if settings.ai_enabled else None,
         semantic_matching="enabled" if settings.semantic_matching else "disabled",
+        ai_timeout_seconds=settings.ai_timeout_seconds,
     )
 
 
