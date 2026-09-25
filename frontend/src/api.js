@@ -126,3 +126,12 @@ export async function addCandidates(jobId, files) {
 export async function removeCandidate(jobId, analysisId) {
   await api.delete(`/api/jobs/${jobId}/candidates/${analysisId}`)
 }
+
+export async function listAnalyses(limit = 20) {
+  const { data } = await api.get('/api/analyses', { params: { limit } })
+  return data
+}
+
+export async function deleteAnalysis(analysisId) {
+  await api.delete(`/api/analyses/${analysisId}`)
+}

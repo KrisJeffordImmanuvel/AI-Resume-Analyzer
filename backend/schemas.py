@@ -526,3 +526,14 @@ class UploadOutcome(BaseModel):
 class CandidateUploadResponse(BaseModel):
     outcomes: list[UploadOutcome]
     job: JobDetail
+
+
+# ---- Phase 8: history -------------------------------------------------------
+
+class AnalysisSummary(BaseModel):
+    id: int
+    created_at: datetime
+    resume_filename: str
+    jd_title: str = Field(description="First line of the job description.")
+    score: int | None
+    extraction: Literal["ai", "fallback"]

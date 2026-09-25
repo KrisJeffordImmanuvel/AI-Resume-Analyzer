@@ -2,16 +2,19 @@
 
 from datetime import timezone
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, Response, UploadFile
 from fastapi.concurrency import run_in_threadpool
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from ai_provider import AIProvider, make_provider
 from analysis_service import run_analysis
 from config import Settings, get_settings
-from models import Analysis
+from models import (
+    Analysis, BulletRewrite, ExternalCheck, InterviewAnswer, InterviewQuestion, InterviewSet, JobCandidate, Roadmap,
+)
 from parsing import MAX_UPLOAD_BYTES, ParseError, clean_jd_text, extract_jd_file_text, extract_resume_text
-from schemas import AnalysisResponse
+from schemas import AnalysisResponse, AnalysisSummary
 from semantic import Embedder, shared_embedder
 
 router = APIRouter(prefix="/api/analyses", tags=["analyses"])
@@ -151,3 +154,40 @@ def get_analysis(analysis_id: int, db: Session = Depends(get_db)) -> AnalysisRes
     if row is None:
         raise HTTPException(404, "Analysis not found.")
     return _to_response(row)
+
+
+@router.get("", response_model=list[AnalysisSummary])
+def list_analyses(
+    limit: int = Query(20, ge=1, le=100), db: Session = Depends(get_db)
+) -> list[AnalysisSummary]:
+    """Recent Job Seeker analyses, newest first (Job Provider candidates are listed under their job)."""
+    in_jobs = select(JobCandidate.analysis_id)
+    rows = db.scalars(
+        select(Analysis).where(Analysis.id.not_in(in_jobs)).order_by(Analysis.id.desc()).limit(limit)
+    ).all()
+    out = []
+    for row in rows:
+        title = next((line.strip() for line in row.jd_text.split("\n") if line.strip()), "")
+        created_at = row.created_at if row.created_at.tzinfo else row.created_at.replace(tzinfo=timezone.utc)
+        out.append(AnalysisSummary(
+            id=row.id, created_at=created_at, resume_filename=row.resume_filename, jd_title=title[:120],
+            score=row.score, extraction=_upgrade_legacy(row.result)["sources"]["extraction"],
+        ))
+    return out
+
+
+@router.delete("/{analysis_id}", status_code=204)
+def delete_analysis(analysis_id: int, db: Session = Depends(get_db)) -> Response:
+    """Permanently delete an analysis, its resume text and everything generated from it."""
+    row = db.get(Analysis, analysis_id)
+    if row is None:
+        raise HTTPException(404, "Analysis not found.")
+    set_ids = select(InterviewSet.id).where(InterviewSet.analysis_id == analysis_id)
+    question_ids = select(InterviewQuestion.id).where(InterviewQuestion.set_id.in_(set_ids))
+    db.execute(delete(InterviewAnswer).where(InterviewAnswer.question_id.in_(question_ids)))
+    db.execute(delete(InterviewQuestion).where(InterviewQuestion.set_id.in_(set_ids)))
+    for model in (InterviewSet, Roadmap, BulletRewrite, ExternalCheck, JobCandidate):
+        db.execute(delete(model).where(model.analysis_id == analysis_id))
+    db.delete(row)
+    db.commit()
+    return Response(status_code=204)

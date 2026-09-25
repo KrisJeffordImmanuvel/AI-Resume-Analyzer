@@ -6,9 +6,21 @@ import AnalysisResults from './AnalysisResults.jsx'
 const PRIORITY_LABEL = { required: 'Required', standard: 'Mentioned', preferred: 'Nice to have' }
 const PRIORITY_SHORT = { required: 'Req', standard: 'Mid', preferred: 'Nice' }
 const MAX_FILES = 10
+const MAX_MB = 5
+const RESUME_TYPES = ['.pdf', '.docx', '.txt']
+
+/** Problems the browser can spot before uploading; the server checks again. */
+function fileProblems(files) {
+  return files.flatMap((f) => {
+    const ext = f.name.slice(f.name.lastIndexOf('.')).toLowerCase()
+    if (!RESUME_TYPES.includes(ext)) return [`"${f.name}" is not a PDF, DOCX or TXT file.`]
+    if (f.size > MAX_MB * 1024 * 1024) return [`"${f.name}" is larger than ${MAX_MB} MB.`]
+    return []
+  })
+}
 const letter = (i) => (i < 26 ? String.fromCharCode(65 + i) : `${String.fromCharCode(65 + Math.floor(i / 26) - 1)}${String.fromCharCode(65 + (i % 26))}`)
 
-function NewJobForm({ onCreated }) {
+function NewJobForm({ onCreated, onCancel }) {
   const [title, setTitle] = useState('')
   const [mode, setMode] = useState('paste')
   const [text, setText] = useState('')
@@ -53,10 +65,15 @@ function NewJobForm({ onCreated }) {
         )}
       </fieldset>
       {error && <p className="form__error">{error}</p>}
-      <button type="submit" className="primary" disabled={busy || !ready}>
-        {busy ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <Plus size={16} aria-hidden="true" />}
-        Create job
-      </button>
+      <div className="form__actions">
+        <button type="submit" className="primary" disabled={busy || !ready}>
+          {busy ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <Plus size={16} aria-hidden="true" />}
+          Create job
+        </button>
+        {onCancel && (
+          <button type="button" className="icon-button" onClick={onCancel}>Cancel</button>
+        )}
+      </div>
     </form>
   )
 }
@@ -279,6 +296,7 @@ export default function Provider() {
   }
 
   const tooMany = files.length > MAX_FILES
+  const problems = fileProblems(files)
   return (
     <>
       <section className="card">
@@ -293,11 +311,11 @@ export default function Provider() {
               </option>
             ))}
           </select>
-          <button type="button" className="icon-button" onClick={() => setCreating((v) => !v)}>
+          <button type="button" className="icon-button" onClick={() => setCreating(true)} disabled={creating}>
             <Plus size={15} aria-hidden="true" /> New job
           </button>
         </div>
-        {creating && <NewJobForm onCreated={onCreated} />}
+        {creating && <NewJobForm onCreated={onCreated} onCancel={jobs.length ? () => setCreating(false) : null} />}
         {job && !creating && (
           <details className="jd-details">
             <summary>Job description ({job.jd_source === 'upload' ? job.jd_filename : 'pasted'})</summary>
@@ -316,8 +334,15 @@ export default function Provider() {
           </p>
           <input ref={fileInput} type="file" multiple accept=".pdf,.docx,.txt" onChange={(e) => setFiles([...e.target.files])} />
           {tooMany && <p className="form__error">Choose at most {MAX_FILES} files.</p>}
+          {problems.length > 0 && (
+            <ul className="outcomes">
+              {problems.map((p) => (
+                <li key={p} className="outcome outcome--error">{p} Remove it from the selection to continue.</li>
+              ))}
+            </ul>
+          )}
           <div className="form__actions">
-            <button type="button" className="primary" onClick={upload} disabled={busy || files.length === 0 || tooMany}>
+            <button type="button" className="primary" onClick={upload} disabled={busy || files.length === 0 || tooMany || problems.length > 0}>
               {busy ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <Upload size={16} aria-hidden="true" />}
               {busy ? `Analysing ${files.length} resume${files.length === 1 ? '' : 's'}…` : `Add ${files.length || ''} candidate${files.length === 1 ? '' : 's'}`}
             </button>
