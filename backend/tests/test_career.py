@@ -42,8 +42,13 @@ def test_role_fit_uses_the_same_engine_and_ranks_sensibly():
 
 
 def test_verified_ai_skills_count_towards_role_fit():
-    provider = FakeProvider({"skills": [{"name": "CI/CD", "quote": "deployed them to AWS using GitHub Actions"}],
-                             "experience": [], "education": []})
+    provider = FakeProvider(
+        {
+            "skills": [{"name": "CI/CD", "quote": "deployed them to AWS using GitHub Actions"}],
+            "experience": [],
+            "education": [],
+        }
+    )
     ai_result = run_analysis(RESUME, JD, provider=provider, fallback_reason=None, embedder=None, semantic_threshold=0.6)
     with_ai = {f["id"]: f for f in career_view(RESUME, ai_result, TODAY)["roles"]}
     without = {f["id"]: f for f in career_view(RESUME, fallback_result(), TODAY)["roles"]}
@@ -51,12 +56,15 @@ def test_verified_ai_skills_count_towards_role_fit():
     assert with_ai["devops"]["score"] > without["devops"]["score"]
 
 
-@pytest.mark.parametrize("text, start, end, current", [
-    ("Jan 2020 – Mar 2022", (2020, 1), (2022, 3), False),
-    ("2022 - Present", (2022, 1), (2026, 9), True),
-    ("Sept 2021 to 2023", (2021, 9), (2023, 12), False),
-    ("2020", (2020, 1), (2020, 12), False),
-])
+@pytest.mark.parametrize(
+    "text, start, end, current",
+    [
+        ("Jan 2020 – Mar 2022", (2020, 1), (2022, 3), False),
+        ("2022 - Present", (2022, 1), (2026, 9), True),
+        ("Sept 2021 to 2023", (2021, 9), (2023, 12), False),
+        ("2020", (2020, 1), (2020, 12), False),
+    ],
+)
 def test_parse_dates(text, start, end, current):
     parsed = parse_dates(text, TODAY)
     assert (parsed["start"], parsed["end"], parsed["current"]) == (start, end, current)
@@ -82,13 +90,16 @@ def test_timeline_orders_items_measures_durations_and_flags_gaps():
     }
     t = build_timeline(profile, TODAY)
     assert [(i["kind"], i["start"]) for i in t["items"]] == [
-        ("education", "2018-01"), ("role", "2019-01"), ("role", "2023-06"),
+        ("education", "2018-01"),
+        ("role", "2019-01"),
+        ("role", "2023-06"),
     ]
     assert t["items"][1]["duration_months"] == 36
     assert t["items"][2]["current"] and t["items"][2]["end"] == "2026-09"
     assert t["items"][0]["duration_months"] is None  # a single year is a point, not a span
-    assert t["gaps"] == [{"after": "Analyst, A", "before": "Engineer, B", "from": "2021-12", "to": "2023-06",
-                          "months": 17}]
+    assert t["gaps"] == [
+        {"after": "Analyst, A", "before": "Engineer, B", "from": "2021-12", "to": "2023-06", "months": 17}
+    ]
     assert t["career_span_months"] == 93
     assert any("no readable dates" in n for n in t["notices"])
 

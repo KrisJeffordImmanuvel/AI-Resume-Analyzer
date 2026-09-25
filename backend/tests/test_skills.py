@@ -85,5 +85,5 @@ def test_term_offset_points_at_the_matched_occurrence():
     by_skill = {m.skill: m for m in find_mentions(text)}
     sql = by_skill["SQL"]
     assert sql.quote == "- Strong knowledge of PostgreSQL and SQL."
-    assert sql.quote[sql.term_offset:].startswith("SQL.")
+    assert sql.quote[sql.term_offset :].startswith("SQL.")
     assert sql.quote.index("SQL") != sql.term_offset

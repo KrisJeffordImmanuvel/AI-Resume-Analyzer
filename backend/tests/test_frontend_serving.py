@@ -19,7 +19,7 @@ def test_root_serves_index(make_client, dist):
     with make_client() as client:
         r = client.get("/")
     assert r.status_code == 200
-    assert 'id=root' in r.text
+    assert "id=root" in r.text
     assert r.headers["cache-control"] == "no-cache"
 
 
@@ -27,7 +27,7 @@ def test_unknown_page_path_falls_back_to_index(make_client, dist):
     with make_client() as client:
         r = client.get("/some/page")
     assert r.status_code == 200
-    assert 'id=root' in r.text
+    assert "id=root" in r.text
 
 
 def test_built_assets_are_cached_long(make_client, dist):

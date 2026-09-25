@@ -220,6 +220,7 @@ class FeedbackResponse(BaseModel):
 
 # ---- Phase 4: resume quality, rewrites, ATS view ----------------------------
 
+
 class BulletIssue(BaseModel):
     code: Literal["no_metric", "weak_opener", "no_action_verb", "too_short", "too_long", "first_person", "filler"]
     severity: Literal["high", "medium", "low"]
@@ -333,6 +334,7 @@ class AtsResponse(BaseModel):
 
 # ---- Phase 5: career intelligence -------------------------------------------
 
+
 class RoleFit(BaseModel):
     id: str
     name: str
@@ -385,6 +387,7 @@ class CareerResponse(BaseModel):
 
 
 # ---- Phase 6: external evidence ---------------------------------------------
+
 
 class GitHubRequest(BaseModel):
     username: str | None = Field(None, max_length=60, description="Omit to use the GitHub link in the resume.")
@@ -485,6 +488,7 @@ class EvidenceSummary(BaseModel):
 
 # ---- Phase 7: Job Provider mode ----------------------------------------------
 
+
 class JobSummary(BaseModel):
     id: int
     created_at: datetime
@@ -540,6 +544,7 @@ class CandidateUploadResponse(BaseModel):
 
 
 # ---- Phase 8: history -------------------------------------------------------
+
 
 class AnalysisSummary(BaseModel):
     id: int

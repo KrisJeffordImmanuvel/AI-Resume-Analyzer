@@ -76,7 +76,9 @@ def test_make_provider_respects_key_and_demo_mode(monkeypatch):
 def test_google_api_errors_are_summarised_in_one_line():
     from google.genai import errors
 
-    exc = errors.ClientError(400, {"error": {"code": 400, "message": "API key not valid.", "status": "INVALID_ARGUMENT"}})
+    exc = errors.ClientError(
+        400, {"error": {"code": 400, "message": "API key not valid.", "status": "INVALID_ARGUMENT"}}
+    )
     with pytest.raises(AIError) as err:
         provider_with(FakeModels(error=exc)).generate_json(system="s", prompt="p", schema=AIResumeProfile)
     assert str(err.value) == "gemini-test: 400 INVALID_ARGUMENT: API key not valid."
@@ -156,24 +158,33 @@ def two_model_provider(outcomes, timeout_seconds=90, call_seconds=1.0):
 
 def test_overloaded_main_model_falls_back_to_backup():
     ok = FakeResponse(text='{"skills": [], "experience": [], "education": []}')
-    provider, models = two_model_provider({"main-model": api_error(503, "UNAVAILABLE", "high demand"),
-                                           "backup-model": ok})
+    provider, models = two_model_provider(
+        {"main-model": api_error(503, "UNAVAILABLE", "high demand"), "backup-model": ok}
+    )
     provider.generate_json(system="s", prompt="p", schema=AIResumeProfile)
     assert models.calls == ["main-model"] * 3 + ["backup-model"]  # 3 tries each
     assert provider.model == "backup-model"  # labels show the model that answered
 
 
 def test_permanent_error_does_not_try_backup():
-    provider, models = two_model_provider({"main-model": api_error(400, "INVALID_ARGUMENT", "API key not valid."),
-                                           "backup-model": FakeResponse(text="{}")})
+    provider, models = two_model_provider(
+        {
+            "main-model": api_error(400, "INVALID_ARGUMENT", "API key not valid."),
+            "backup-model": FakeResponse(text="{}"),
+        }
+    )
     with pytest.raises(AIError, match="API key not valid"):
         provider.generate_json(system="s", prompt="p", schema=AIResumeProfile)
     assert models.calls == ["main-model"]
 
 
 def test_all_models_overloaded_reports_each():
-    provider, _ = two_model_provider({"main-model": api_error(503, "UNAVAILABLE", "high demand"),
-                                      "backup-model": api_error(429, "RESOURCE_EXHAUSTED", "quota")})
+    provider, _ = two_model_provider(
+        {
+            "main-model": api_error(503, "UNAVAILABLE", "high demand"),
+            "backup-model": api_error(429, "RESOURCE_EXHAUSTED", "quota"),
+        }
+    )
     with pytest.raises(AIError) as err:
         provider.generate_json(system="s", prompt="p", schema=AIResumeProfile)
     assert "main-model: 503" in str(err.value) and "backup-model: 429" in str(err.value)
@@ -183,8 +194,9 @@ OK = FakeResponse(text='{"skills": [], "experience": [], "education": []}')
 
 
 def test_temporary_error_is_retried_after_a_short_wait():
-    provider, models = two_model_provider({"main-model": [api_error(503, "UNAVAILABLE", "busy")] * 2 + [OK],
-                                           "backup-model": OK})
+    provider, models = two_model_provider(
+        {"main-model": [api_error(503, "UNAVAILABLE", "busy")] * 2 + [OK], "backup-model": OK}
+    )
     provider.generate_json(system="s", prompt="p", schema=AIResumeProfile)
     assert models.calls == ["main-model"] * 3
     assert provider.sleep.__self__.sleeps == [2.0, 4.0]

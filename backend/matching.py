@@ -54,8 +54,10 @@ def _is_heading(line: str) -> bool:
     core = stripped.lstrip("#").strip().rstrip(":").strip()
     if not core or len(core.split()) > 6 or re.search(r"[.!?,;]$", core):
         return False
-    return stripped.endswith(":") or stripped.startswith("#") or bool(
-        _PREFERRED_WORDS.search(core) or _REQUIRED_WORDS.search(core)
+    return (
+        stripped.endswith(":")
+        or stripped.startswith("#")
+        or bool(_PREFERRED_WORDS.search(core) or _REQUIRED_WORDS.search(core))
     )
 
 
@@ -123,9 +125,7 @@ def analyze(
 
     matched, unmatched = [], []
     for name, jd_mentions in jd_skills.items():
-        priority = max(
-            (_priority_at(line_infos, m.start) for m in jd_mentions), key=_PRIORITY_RANK.__getitem__
-        )
+        priority = max((_priority_at(line_infos, m.start) for m in jd_mentions), key=_PRIORITY_RANK.__getitem__)
         base = {
             "skill": name,
             "category": index[name].category,
@@ -136,15 +136,18 @@ def analyze(
         if resume_mentions:
             jd_terms = {m.term.lower() for m in jd_mentions}
             same_wording = any(m.term.lower() in jd_terms for m in resume_mentions)
-            matched.append({
-                **base,
-                "match_type": "exact" if same_wording else "literal",
-                "credit": 1.0,
-                "resume_evidence": _evidence(resume_mentions),
-            })
+            matched.append(
+                {
+                    **base,
+                    "match_type": "exact" if same_wording else "literal",
+                    "credit": 1.0,
+                    "resume_evidence": _evidence(resume_mentions),
+                }
+            )
         elif name in ai_skills:
-            matched.append({**base, "match_type": "ai_inferred", "credit": RELATED_CREDIT,
-                            "resume_evidence": [ai_skills[name]]})
+            matched.append(
+                {**base, "match_type": "ai_inferred", "credit": RELATED_CREDIT, "resume_evidence": [ai_skills[name]]}
+            )
         else:
             unmatched.append(base)
 
@@ -156,13 +159,15 @@ def analyze(
             if item["skill"] in found:
                 quote, similarity = found[item["skill"]]
                 evidence = {"quote": quote, "term": None, "term_offset": None, "similarity": similarity}
-                matched.append({**item, "match_type": "semantic", "credit": RELATED_CREDIT,
-                                "resume_evidence": [evidence]})
+                matched.append(
+                    {**item, "match_type": "semantic", "credit": RELATED_CREDIT, "resume_evidence": [evidence]}
+                )
             else:
                 missing.append(item)
 
-    breakdown = {p: {"priority": p, "weight": w, "matched": 0, "related": 0, "total": 0}
-                 for p, w in PRIORITY_WEIGHTS.items()}
+    breakdown = {
+        p: {"priority": p, "weight": w, "matched": 0, "related": 0, "total": 0} for p, w in PRIORITY_WEIGHTS.items()
+    }
     matched_weight = 0.0
     total_weight = 0
     for item in matched + missing:
@@ -187,9 +192,7 @@ def analyze(
 
     warnings = []
     if not jd_skills:
-        warnings.append(
-            "No recognizable skills were found in the job description, so no score was calculated."
-        )
+        warnings.append("No recognizable skills were found in the job description, so no score was calculated.")
     if not resume_skills:
         warnings.append("No recognizable skills were found in the resume.")
 

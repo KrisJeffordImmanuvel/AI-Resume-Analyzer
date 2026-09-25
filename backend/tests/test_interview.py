@@ -9,10 +9,24 @@ from tests.conftest import FakeProvider
 SAMPLES = Path(__file__).resolve().parents[2] / "samples"
 RESUME = normalize_text((SAMPLES / "sample_resume.txt").read_text(encoding="utf-8"))
 JD = normalize_text((SAMPLES / "sample_job_description.txt").read_text(encoding="utf-8"))
-RESULT = {**analyze(RESUME, JD), "profile": {"experience": [
-    {"title": None, "organization": None, "dates": "2022 - Present",
-     "evidence": {"quote": "Software Engineer, Example Fintech Pvt Ltd (2022 - Present)", "term": None,
-                  "term_offset": None, "similarity": None}}]}}
+RESULT = {
+    **analyze(RESUME, JD),
+    "profile": {
+        "experience": [
+            {
+                "title": None,
+                "organization": None,
+                "dates": "2022 - Present",
+                "evidence": {
+                    "quote": "Software Engineer, Example Fintech Pvt Ltd (2022 - Present)",
+                    "term": None,
+                    "term_offset": None,
+                    "similarity": None,
+                },
+            }
+        ]
+    },
+}
 
 
 def test_fallback_questions_are_grounded_in_verbatim_text():
@@ -29,25 +43,49 @@ def test_fallback_questions_are_grounded_in_verbatim_text():
 
 
 def test_ai_questions_without_verified_grounding_are_discarded():
-    provider = FakeProvider({"questions": [
-        {"type": "skill", "skill": "Redis", "question": "How did Redis caching cut report time by 60%?",
-         "based_on_quote": "Cut report generation time by 60% by adding Redis caching."},
-        {"type": "gap", "skill": "Kubernetes", "question": "How would you learn Kubernetes quickly?",
-         "based_on_quote": "Experience with Docker and Kubernetes."},
-        {"type": "experience", "skill": None, "question": "Tell me about your time at Google.",
-         "based_on_quote": "Senior Engineer, Google (2018 - 2020)"},  # invented premise
-        {"type": "skill", "skill": "Go", "question": "Explain goroutines you wrote.", "based_on_quote": None},
-        {"type": "behavioral", "skill": None, "question": "Tell me about a hard deadline you met.",
-         "based_on_quote": None},
-        {"type": "trivia", "skill": None, "question": "What is 2 + 2 in binary?", "based_on_quote": None},
-    ]})
+    provider = FakeProvider(
+        {
+            "questions": [
+                {
+                    "type": "skill",
+                    "skill": "Redis",
+                    "question": "How did Redis caching cut report time by 60%?",
+                    "based_on_quote": "Cut report generation time by 60% by adding Redis caching.",
+                },
+                {
+                    "type": "gap",
+                    "skill": "Kubernetes",
+                    "question": "How would you learn Kubernetes quickly?",
+                    "based_on_quote": "Experience with Docker and Kubernetes.",
+                },
+                {
+                    "type": "experience",
+                    "skill": None,
+                    "question": "Tell me about your time at Google.",
+                    "based_on_quote": "Senior Engineer, Google (2018 - 2020)",
+                },  # invented premise
+                {"type": "skill", "skill": "Go", "question": "Explain goroutines you wrote.", "based_on_quote": None},
+                {
+                    "type": "behavioral",
+                    "skill": None,
+                    "question": "Tell me about a hard deadline you met.",
+                    "based_on_quote": None,
+                },
+                {"type": "trivia", "skill": None, "question": "What is 2 + 2 in binary?", "based_on_quote": None},
+            ]
+        }
+    )
     questions, sources = build_questions(RESUME, JD, RESULT, provider, None)
     assert sources["source"] == "ai"
     assert [q["question"][:20] for q in questions] == [
-        "How did Redis cachin", "How would you learn ", "Tell me about a hard",
+        "How did Redis cachin",
+        "How would you learn ",
+        "Tell me about a hard",
     ]
-    assert questions[0]["grounding"] == {"source": "resume",
-                                         "quote": "Cut report generation time by 60% by adding Redis caching."}
+    assert questions[0]["grounding"] == {
+        "source": "resume",
+        "quote": "Cut report generation time by 60% by adding Redis caching.",
+    }
     assert questions[1]["grounding"]["source"] == "jd"
     assert "3 AI question(s) were discarded" in sources["notices"][0]
 
@@ -60,8 +98,18 @@ def test_ai_question_failure_falls_back():
 
 
 def test_ai_returning_only_bad_questions_falls_back():
-    provider = FakeProvider({"questions": [{"type": "skill", "skill": "X", "question": "Invented premise?",
-                                            "based_on_quote": "not in any document"}]})
+    provider = FakeProvider(
+        {
+            "questions": [
+                {
+                    "type": "skill",
+                    "skill": "X",
+                    "question": "Invented premise?",
+                    "based_on_quote": "not in any document",
+                }
+            ]
+        }
+    )
     questions, sources = build_questions(RESUME, JD, RESULT, provider, None)
     assert sources["source"] == "fallback"
     assert questions == fallback_questions(RESULT)
@@ -102,14 +150,18 @@ def test_rule_based_feedback_flags_a_weak_answer():
 
 
 def test_ai_feedback_keeps_only_verified_answer_quotes():
-    provider = FakeProvider({
-        "rating": 4,
-        "summary": "Clear and specific.",
-        "strengths": [{"point": "Quantified impact", "answer_quote": "report time dropped by 60%"},
-                      {"point": "Owned the work", "answer_quote": "I single-handedly rebuilt the platform"}],
-        "improvements": [{"point": "Mention trade-offs", "answer_quote": None}],
-        "follow_up_question": "How did you handle cache invalidation bugs?",
-    })
+    provider = FakeProvider(
+        {
+            "rating": 4,
+            "summary": "Clear and specific.",
+            "strengths": [
+                {"point": "Quantified impact", "answer_quote": "report time dropped by 60%"},
+                {"point": "Owned the work", "answer_quote": "I single-handedly rebuilt the platform"},
+            ],
+            "improvements": [{"point": "Mention trade-offs", "answer_quote": None}],
+            "follow_up_question": "How did you handle cache invalidation bugs?",
+        }
+    )
     fb = build_feedback({"skill": "Redis", "question": "q"}, STRONG, provider, None)
     assert fb["source"] == "ai" and fb["rating"] == 4
     assert fb["strengths"][0]["answer_quote"] == "report time dropped by 60%"
@@ -118,8 +170,9 @@ def test_ai_feedback_keeps_only_verified_answer_quotes():
 
 
 def test_ai_feedback_out_of_range_rating_is_dropped():
-    provider = FakeProvider({"rating": 9, "summary": "s", "strengths": [{"point": "p"}], "improvements": [],
-                             "follow_up_question": "f?"})
+    provider = FakeProvider(
+        {"rating": 9, "summary": "s", "strengths": [{"point": "p"}], "improvements": [], "follow_up_question": "f?"}
+    )
     assert build_feedback({"question": "q"}, STRONG, provider, None)["rating"] is None
 
 

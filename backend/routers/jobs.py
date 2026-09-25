@@ -12,8 +12,15 @@ from config import Settings, get_settings
 from models import Analysis, Job, JobCandidate
 from parsing import ParseError, clean_jd_text, extract_jd_file_text, extract_resume_text
 from routers.analyses import (
-    Cancelled, _read_limited, _upgrade_legacy, analyze_and_save, cancelled_response, delete_analysis_rows,
-    get_ai_provider, get_db, get_embedder,
+    Cancelled,
+    _read_limited,
+    _upgrade_legacy,
+    analyze_and_save,
+    cancelled_response,
+    delete_analysis_rows,
+    get_ai_provider,
+    get_db,
+    get_embedder,
 )
 from schemas import CandidateUploadResponse, JobDetail, JobSummary
 from semantic import Embedder
@@ -30,15 +37,23 @@ def _utc(value):
 
 def _summary(job: Job) -> dict:
     return {
-        "id": job.id, "created_at": _utc(job.created_at), "title": job.title, "jd_source": job.jd_source,
-        "jd_filename": job.jd_filename, "candidate_count": len(job.candidates),
+        "id": job.id,
+        "created_at": _utc(job.created_at),
+        "title": job.title,
+        "jd_source": job.jd_source,
+        "jd_filename": job.jd_filename,
+        "candidate_count": len(job.candidates),
     }
 
 
 def _detail(job: Job) -> JobDetail:
     candidates = [
-        {"analysis_id": c.analysis_id, "filename": c.analysis.resume_filename, "created_at": _utc(c.created_at),
-         "result": _upgrade_legacy(c.analysis.result)}
+        {
+            "analysis_id": c.analysis_id,
+            "filename": c.analysis.resume_filename,
+            "created_at": _utc(c.created_at),
+            "result": _upgrade_legacy(c.analysis.result),
+        }
         for c in job.candidates
     ]
     return JobDetail(**_summary(job), jd_text=job.jd_text, **compare(job.jd_text, candidates))
@@ -68,8 +83,9 @@ async def create_job(
     if has_file == has_text:
         raise HTTPException(422, "Provide the job description either as a .txt file or as pasted text (exactly one).")
     try:
-        text = (extract_jd_file_text(jd_file.filename, await _read_limited(jd_file)) if has_file
-                else clean_jd_text(jd_text))
+        text = (
+            extract_jd_file_text(jd_file.filename, await _read_limited(jd_file)) if has_file else clean_jd_text(jd_text)
+        )
     except ParseError as exc:
         raise HTTPException(exc.status, exc.message) from exc
     job = Job(
@@ -118,15 +134,23 @@ async def add_candidates(
             outcomes.append({"filename": name, "status": "error", "message": exc.message})
             continue
         if text in existing_texts:
-            outcomes.append({"filename": name, "status": "duplicate",
-                             "message": "This resume is already in the comparison."})
+            outcomes.append(
+                {"filename": name, "status": "duplicate", "message": "This resume is already in the comparison."}
+            )
             continue
         # Exactly the same path as Job Seeker mode.
         try:
             analysis = await analyze_and_save(
-                db, settings, provider, embedder,
-                resume_filename=name, resume_text=text, jd_text=job.jd_text,
-                jd_source=job.jd_source, jd_filename=job.jd_filename, request=request,
+                db,
+                settings,
+                provider,
+                embedder,
+                resume_filename=name,
+                resume_text=text,
+                jd_text=job.jd_text,
+                jd_source=job.jd_source,
+                jd_filename=job.jd_filename,
+                request=request,
             )
         except Cancelled:
             return cancelled_response()  # resumes already added in this batch stay added

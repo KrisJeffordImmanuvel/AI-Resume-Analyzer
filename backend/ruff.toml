@@ -1,0 +1,22 @@
+# Ruff: Python linter and formatter.
+#   ruff check .      find likely bugs and unused imports
+#   ruff format .     format the code
+line-length = 120
+target-version = "py311"
+extend-exclude = ["venv"]
+
+[lint]
+# E/W: style errors, F: likely bugs (undefined or unused names), I: import order,
+# B: common bug patterns, UP: modern Python syntax.
+select = ["E", "W", "F", "I", "B", "UP"]
+ignore = [
+    "B008",  # FastAPI declares dependencies as default arguments (Depends(...)) by design
+]
+
+[lint.isort]
+known-first-party = [
+    "ai_provider", "analysis_service", "ats", "career", "comparison", "config", "database", "evidence",
+    "fairness", "github_check", "interview", "linkedin_check", "main", "matching", "models", "parsing",
+    "profile_extraction", "request_limit", "resume_quality", "roadmap", "routers", "schemas", "semantic",
+    "skills", "text_utils", "tests",
+]

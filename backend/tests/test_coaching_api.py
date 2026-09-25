@@ -48,9 +48,18 @@ def test_interview_questions_and_feedback_flow(make_client):
 
 
 def test_ai_is_used_for_coaching_when_available(make_client):
-    provider = FakeProvider({"questions": [
-        {"type": "behavioral", "skill": None, "question": "Tell me about a hard deadline you met.",
-         "based_on_quote": None}]})
+    provider = FakeProvider(
+        {
+            "questions": [
+                {
+                    "type": "behavioral",
+                    "skill": None,
+                    "question": "Tell me about a hard deadline you met.",
+                    "based_on_quote": None,
+                }
+            ]
+        }
+    )
     with make_client(api_key="placeholder", provider=provider) as client:
         aid = new_analysis(client)
         qset = client.post(f"/api/analyses/{aid}/interview").json()

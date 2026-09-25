@@ -121,7 +121,7 @@ def best_matches(
         return {}
     queries = [skill_query(name) for name in skill_names]
     vectors = embedder.encode(queries + units)
-    query_vecs, unit_vecs = vectors[: len(queries)], vectors[len(queries):]
+    query_vecs, unit_vecs = vectors[: len(queries)], vectors[len(queries) :]
     out = {}
     for name, qv in zip(skill_names, query_vecs):
         scored = [(_cosine(qv, uv), unit) for uv, unit in zip(unit_vecs, units)]

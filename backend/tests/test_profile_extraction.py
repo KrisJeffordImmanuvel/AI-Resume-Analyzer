@@ -61,7 +61,9 @@ def test_ai_profile_keeps_only_verified_items_and_fields():
 
     first, second = profile["experience"]
     assert (first["title"], first["organization"], first["dates"]) == (
-        "Software Engineer", "Example Fintech Pvt Ltd", "2022 – Present"
+        "Software Engineer",
+        "Example Fintech Pvt Ltd",
+        "2022 – Present",
     )
     assert (second["title"], second["organization"], second["dates"]) == ("Junior Developer", None, None)
     [edu] = profile["education"]
@@ -75,7 +77,7 @@ def test_every_kept_ai_quote_is_verbatim_resume_text():
         ev = item["evidence"]
         assert ev["quote"] in RESUME
         if ev["term"] is not None:
-            assert ev["quote"][ev["term_offset"]:].startswith(ev["term"])
+            assert ev["quote"][ev["term_offset"] :].startswith(ev["term"])
 
 
 def test_ai_skills_are_mapped_to_the_taxonomy():

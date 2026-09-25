@@ -16,10 +16,23 @@ NOW = datetime(2026, 9, 24, tzinfo=timezone.utc)
 TODAY = date(2026, 9, 24)
 
 REPOS = [
-    {"name": "api", "html_url": "https://github.com/p/api", "language": "Python", "fork": False,
-     "description": "FastAPI + PostgreSQL service", "topics": ["docker", "rest-api"], "pushed_at": "2026-05-01T00:00:00Z"},
-    {"name": "infra", "html_url": "https://github.com/p/infra", "language": "HCL", "fork": False,
-     "topics": [], "pushed_at": "2023-01-01T00:00:00Z"},
+    {
+        "name": "api",
+        "html_url": "https://github.com/p/api",
+        "language": "Python",
+        "fork": False,
+        "description": "FastAPI + PostgreSQL service",
+        "topics": ["docker", "rest-api"],
+        "pushed_at": "2026-05-01T00:00:00Z",
+    },
+    {
+        "name": "infra",
+        "html_url": "https://github.com/p/infra",
+        "language": "HCL",
+        "fork": False,
+        "topics": [],
+        "pushed_at": "2023-01-01T00:00:00Z",
+    },
     {"name": "someone-elses", "html_url": "https://github.com/p/fork", "language": "Rust", "fork": True},
     {"name": "old", "html_url": "https://github.com/p/old", "language": "Go", "archived": True},
 ]
@@ -27,14 +40,24 @@ REPOS = [
 
 # ---- GitHub ------------------------------------------------------------------------
 
+
 def test_username_is_detected_from_resume_links_only():
     assert detect_username(RESUME) == "example"
     assert detect_username("see github.com/orgs/acme and github.com/jane-doe") == "jane-doe"
     assert detect_username("no links") is None
 
 
-@pytest.mark.parametrize("lang, skill", [("Python", "Python"), ("Shell", "Bash"), ("HCL", "Terraform"),
-                                         ("Dockerfile", "Docker"), ("Vue", "Vue.js"), ("Makefile", None)])
+@pytest.mark.parametrize(
+    "lang, skill",
+    [
+        ("Python", "Python"),
+        ("Shell", "Bash"),
+        ("HCL", "Terraform"),
+        ("Dockerfile", "Docker"),
+        ("Vue", "Vue.js"),
+        ("Makefile", None),
+    ],
+)
 def test_github_languages_map_to_skills(lang, skill):
     assert language_skill(lang) == skill
 
@@ -46,8 +69,12 @@ def test_github_check_uses_only_public_non_fork_repos_and_marks_evidence_source(
     seen = {c["skill"]: c for c in out["resume_claims"] if c["status"] == "seen"}
     assert set(seen) == {"Python", "FastAPI", "PostgreSQL", "Docker", "REST APIs"}
     assert seen["Python"]["examples"][0]["via"] == "main language: Python"
-    assert seen["FastAPI"]["examples"][0] == {"name": "api", "url": "https://github.com/p/api",
-                                              "pushed_at": "2026-05-01T00:00:00Z", "via": "topics/description"}
+    assert seen["FastAPI"]["examples"][0] == {
+        "name": "api",
+        "url": "https://github.com/p/api",
+        "pushed_at": "2026-05-01T00:00:00Z",
+        "via": "topics/description",
+    }
     assert {c["skill"] for c in out["resume_claims"] if c["status"] == "not_seen"} >= {"Django", "Redis"}
     assert [l["language"] for l in out["not_on_resume"]] == ["HCL"]
     assert "not mean untrue" in out["label"]
@@ -114,10 +141,21 @@ def test_linkedin_without_dates_gets_a_notice():
 
 
 def test_linkedin_ai_path_uses_verified_extraction():
-    provider = FakeProvider({"skills": [], "education": [], "experience": [
-        {"title": "Software Engineer", "organization": "Example Fintech Pvt Ltd", "dates": "2021 - Present",
-         "quote": "Software Engineer\nExample Fintech Pvt Ltd · Full-time\n2021 - Present"},
-        {"title": "CTO", "organization": "Google", "dates": "2015 - 2016", "quote": "CTO at Google 2015"}]})
+    provider = FakeProvider(
+        {
+            "skills": [],
+            "education": [],
+            "experience": [
+                {
+                    "title": "Software Engineer",
+                    "organization": "Example Fintech Pvt Ltd",
+                    "dates": "2021 - Present",
+                    "quote": "Software Engineer\nExample Fintech Pvt Ltd · Full-time\n2021 - Present",
+                },
+                {"title": "CTO", "organization": "Google", "dates": "2015 - 2016", "quote": "CTO at Google 2015"},
+            ],
+        }
+    )
     out = run_linkedin(provider=provider)
     assert out["source"] == "ai"
     assert all("Google" not in (r["linkedin"] or "") for r in out["roles"])  # invented role discarded
@@ -126,9 +164,12 @@ def test_linkedin_ai_path_uses_verified_extraction():
 
 # ---- Fairness ----------------------------------------------------------------------
 
+
 def test_fairness_flags_jd_wording_with_all_terms_per_line():
-    jd = ("We want a rockstar Python ninja to join our young, energetic team.\n"
-          "Native English speakers only.\nMust be a citizen.\nCompetitive salary and a great culture.")
+    jd = (
+        "We want a rockstar Python ninja to join our young, energetic team.\n"
+        "Native English speakers only.\nMust be a citizen.\nCompetitive salary and a great culture."
+    )
     findings = fairness_scan("", jd)["job_description"]
     got = {(f["category"], tuple(f["terms"])) for f in findings}
     assert ("Gender-coded", ("rockstar", "ninja")) in got
@@ -140,12 +181,19 @@ def test_fairness_flags_jd_wording_with_all_terms_per_line():
 
 
 def test_fairness_flags_personal_details_in_resume_but_not_ordinary_words():
-    resume = ("Jane Doe\nDate of Birth: 01/02/1999\nMarital Status: Single\nMarried\n"
-              "Father's Name: X\nReligion: Y\nI married data and design.\nBuilt a singleton cache.")
+    resume = (
+        "Jane Doe\nDate of Birth: 01/02/1999\nMarital Status: Single\nMarried\n"
+        "Father's Name: X\nReligion: Y\nI married data and design.\nBuilt a singleton cache."
+    )
     findings = fairness_scan(resume, "")["resume"]
     quotes = [f["quote"] for f in findings]
-    assert quotes == ["Date of Birth: 01/02/1999", "Marital Status: Single", "Married", "Religion: Y",
-                      "Father's Name: X"]
+    assert quotes == [
+        "Date of Birth: 01/02/1999",
+        "Marital Status: Single",
+        "Married",
+        "Religion: Y",
+        "Father's Name: X",
+    ]
     assert fairness_scan(RESUME, "")["resume"] == []
 
 
@@ -173,11 +221,14 @@ def test_http_client_requests_public_endpoints_and_sends_token_only_if_set():
     assert seen[1][0] == "/users/p/repos" and seen[1][1]["type"] == "owner" and seen[1][2] == "Bearer tok"
 
 
-@pytest.mark.parametrize("status, headers, message", [
-    (404, {}, "No public GitHub user"),
-    (403, {"x-ratelimit-remaining": "0"}, "hourly limit"),
-    (500, {}, r"GitHub returned an error \(500\)"),
-])
+@pytest.mark.parametrize(
+    "status, headers, message",
+    [
+        (404, {}, "No public GitHub user"),
+        (403, {"x-ratelimit-remaining": "0"}, "hourly limit"),
+        (500, {}, r"GitHub returned an error \(500\)"),
+    ],
+)
 def test_http_client_maps_errors_to_friendly_messages(status, headers, message):
     client = client_with(lambda request: httpx.Response(status, headers=headers, json={}))
     with pytest.raises(GitHubError, match=message):
@@ -193,8 +244,7 @@ def test_http_client_network_failure_is_friendly():
 
 
 def test_linkedin_duration_text_does_not_hide_the_role_title():
-    text = ("Experience\nSoftware Engineer\nExample Fintech Pvt Ltd · Full-time\n"
-            "Jan 2021 - Present · 5 yrs 9 mos")
+    text = "Experience\nSoftware Engineer\nExample Fintech Pvt Ltd · Full-time\nJan 2021 - Present · 5 yrs 9 mos"
     rows = run_linkedin(text)["roles"]
     mismatch = next(r for r in rows if r["status"] == "date_mismatch")
     assert mismatch["linkedin"].startswith("Software Engineer\nExample Fintech")

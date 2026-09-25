@@ -27,6 +27,7 @@ BEHAVIORAL = [
 
 # ---- Questions: deterministic ----------------------------------------------------
 
+
 def _grounding(source: str, evidence: dict) -> dict:
     return {"source": source, "quote": evidence["quote"]}
 
@@ -35,28 +36,34 @@ def fallback_questions(result: dict) -> list[dict]:
     questions = []
     named = [m for m in result.get("matched", []) if m.get("credit", 1.0) == 1.0]
     for m in named[:3]:
-        questions.append({
-            "type": "skill",
-            "skill": m["skill"],
-            "question": f"Your resume mentions {m['skill']}. Walk me through a specific problem you solved with it, "
-                        f"what you did yourself, and the result.",
-            "grounding": _grounding("resume", m["resume_evidence"][0]),
-        })
+        questions.append(
+            {
+                "type": "skill",
+                "skill": m["skill"],
+                "question": f"Your resume mentions {m['skill']}. Walk me through a specific problem you solved with it, "
+                f"what you did yourself, and the result.",
+                "grounding": _grounding("resume", m["resume_evidence"][0]),
+            }
+        )
     for m in result.get("missing", [])[:2]:
-        questions.append({
-            "type": "gap",
-            "skill": m["skill"],
-            "question": f"This role asks for {m['skill']}. What related experience do you have, "
-                        f"and how would you get up to speed in your first months?",
-            "grounding": _grounding("jd", m["jd_evidence"][0]),
-        })
+        questions.append(
+            {
+                "type": "gap",
+                "skill": m["skill"],
+                "question": f"This role asks for {m['skill']}. What related experience do you have, "
+                f"and how would you get up to speed in your first months?",
+                "grounding": _grounding("jd", m["jd_evidence"][0]),
+            }
+        )
     for e in result.get("profile", {}).get("experience", [])[:1]:
-        questions.append({
-            "type": "experience",
-            "skill": None,
-            "question": "Pick one achievement from this role and explain your contribution and its impact.",
-            "grounding": _grounding("resume", e["evidence"]),
-        })
+        questions.append(
+            {
+                "type": "experience",
+                "skill": None,
+                "question": "Pick one achievement from this role and explain your contribution and its impact.",
+                "grounding": _grounding("resume", e["evidence"]),
+            }
+        )
     for q in BEHAVIORAL:
         questions.append({"type": "behavioral", "skill": None, "question": q, "grounding": None})
     return questions[:MAX_QUESTIONS]
@@ -64,13 +71,15 @@ def fallback_questions(result: dict) -> list[dict]:
 
 # ---- Questions: AI ---------------------------------------------------------------
 
+
 class _AIQuestion(BaseModel):
     type: str = Field(description="One of: skill, gap, experience, behavioral.")
     skill: str | None = Field(None, description="The skill the question is about, if any.")
     question: str = Field(description="The interview question, one or two sentences.")
     based_on_quote: str | None = Field(
-        None, description="Exact text copied from the resume or job description that the question is based on. "
-                          "Required unless type is behavioral."
+        None,
+        description="Exact text copied from the resume or job description that the question is based on. "
+        "Required unless type is behavioral.",
     )
 
 
@@ -142,26 +151,40 @@ def build_questions(
                     "found in the resume or job description."
                 )
             if questions:
-                return questions, {"source": "ai", "model": f"{provider.name}:{provider.model}",
-                                   "fallback_reason": None, "notices": notices}
+                return questions, {
+                    "source": "ai",
+                    "model": f"{provider.name}:{provider.model}",
+                    "fallback_reason": None,
+                    "notices": notices,
+                }
             notices.append("AI produced no usable questions, so template questions are shown instead.")
             fallback_reason = "provider_error"
         except AIError as exc:
             fallback_reason = "provider_error"
             notices.append(f"AI questions failed, so template questions are shown instead. ({exc})")
-    return fallback_questions(result), {"source": "fallback", "model": None,
-                                        "fallback_reason": fallback_reason, "notices": notices}
+    return fallback_questions(result), {
+        "source": "fallback",
+        "model": None,
+        "fallback_reason": fallback_reason,
+        "notices": notices,
+    }
 
 
 # ---- Feedback --------------------------------------------------------------------
 
 _SENTENCE = re.compile(r"[^.!?\n]+[.!?]?")
 _NUMBER = re.compile(r"\d+(?:[.,]\d+)?\s*(%|percent|x\b|ms\b|hours?|days?|weeks?|users?|requests?)?", re.I)
-_FIRST_PERSON = re.compile(r"\bI\s+(?:\w+ly\s+)?(built|led|designed|wrote|created|implemented|fixed|reduced|"
-                           r"improved|migrated|owned|launched|automated|refactored|decided|proposed|set up|"
-                           r"introduced|debugged|deployed|analy[sz]ed|mentored|delivered)\b", re.I)
-_RESULT = re.compile(r"\b(result(ed)?|so that|which (cut|reduced|increased|improved|saved)|reduced|increased|"
-                     r"improved|saved|cut|grew|outcome|impact)\b", re.I)
+_FIRST_PERSON = re.compile(
+    r"\bI\s+(?:\w+ly\s+)?(built|led|designed|wrote|created|implemented|fixed|reduced|"
+    r"improved|migrated|owned|launched|automated|refactored|decided|proposed|set up|"
+    r"introduced|debugged|deployed|analy[sz]ed|mentored|delivered)\b",
+    re.I,
+)
+_RESULT = re.compile(
+    r"\b(result(ed)?|so that|which (cut|reduced|increased|improved|saved)|reduced|increased|"
+    r"improved|saved|cut|grew|outcome|impact)\b",
+    re.I,
+)
 
 
 def _sentence_with(answer: str, pattern: re.Pattern) -> str | None:
@@ -190,7 +213,7 @@ def rule_based_feedback(question: dict, answer: str) -> dict:
     if action:
         strengths.append(_point("Describes what you did yourself.", action))
     else:
-        improvements.append(_point("Say what you personally did (\"I designed…\", \"I fixed…\"), not only the team."))
+        improvements.append(_point('Say what you personally did ("I designed…", "I fixed…"), not only the team.'))
 
     number = _sentence_with(answer, _NUMBER)
     if number:
@@ -283,12 +306,22 @@ def build_feedback(question: dict, answer: str, provider: AIProvider | None, fal
             )
             feedback = _verify_feedback(raw, answer)
             if feedback["follow_up_question"] and (feedback["strengths"] or feedback["improvements"]):
-                return {**feedback, "source": "ai", "model": f"{provider.name}:{provider.model}",
-                        "fallback_reason": None, "notices": notices}
+                return {
+                    **feedback,
+                    "source": "ai",
+                    "model": f"{provider.name}:{provider.model}",
+                    "fallback_reason": None,
+                    "notices": notices,
+                }
             notices.append("AI feedback was incomplete, so rule-based feedback is shown instead.")
             fallback_reason = "provider_error"
         except AIError as exc:
             fallback_reason = "provider_error"
             notices.append(f"AI feedback failed, so rule-based feedback is shown instead. ({exc})")
-    return {**rule_based_feedback(question, answer), "source": "fallback", "model": None,
-            "fallback_reason": fallback_reason, "notices": notices}
+    return {
+        **rule_based_feedback(question, answer),
+        "source": "fallback",
+        "model": None,
+        "fallback_reason": fallback_reason,
+        "notices": notices,
+    }

@@ -22,13 +22,35 @@ EXAMPLES_PER_LANGUAGE = 3
 
 # GitHub language names that differ from our skill names.
 LANGUAGE_TO_SKILL = {
-    "Shell": "Bash", "HCL": "Terraform", "Dockerfile": "Docker", "Vue": "Vue.js", "SCSS": "Sass",
-    "Jupyter Notebook": "Jupyter", "TSQL": "Microsoft SQL Server", "PLSQL": "Oracle Database",
-    "PLpgSQL": "PostgreSQL", "Go": "Go", "R": "R", "C": "C", "Svelte": "Svelte", "Astro": None, "Makefile": None,
+    "Shell": "Bash",
+    "HCL": "Terraform",
+    "Dockerfile": "Docker",
+    "Vue": "Vue.js",
+    "SCSS": "Sass",
+    "Jupyter Notebook": "Jupyter",
+    "TSQL": "Microsoft SQL Server",
+    "PLSQL": "Oracle Database",
+    "PLpgSQL": "PostgreSQL",
+    "Go": "Go",
+    "R": "R",
+    "C": "C",
+    "Svelte": "Svelte",
+    "Astro": None,
+    "Makefile": None,
 }
 # Skill categories where a public repo is meaningful evidence.
-CODE_CATEGORIES = {"Programming Languages", "Web Frontend", "Web Backend", "Mobile", "DevOps & Infrastructure",
-                   "Data & Analytics", "Machine Learning & AI", "Databases", "Cloud", "Testing & QA"}
+CODE_CATEGORIES = {
+    "Programming Languages",
+    "Web Frontend",
+    "Web Backend",
+    "Mobile",
+    "DevOps & Infrastructure",
+    "Data & Analytics",
+    "Machine Learning & AI",
+    "Databases",
+    "Cloud",
+    "Testing & QA",
+}
 
 
 class GitHubError(Exception):
@@ -58,12 +80,16 @@ class HttpGitHubClient:
         try:
             resp = self._client.get(path, params=params)
         except httpx.HTTPError as exc:
-            raise GitHubError(f"Could not reach GitHub ({type(exc).__name__}). Check your internet connection.") from exc
+            raise GitHubError(
+                f"Could not reach GitHub ({type(exc).__name__}). Check your internet connection."
+            ) from exc
         if resp.status_code == 404:
             raise GitHubError("No public GitHub user with that username.")
         if resp.status_code in (403, 429) and resp.headers.get("x-ratelimit-remaining") == "0":
-            raise GitHubError("GitHub's hourly limit for anonymous requests was reached. Try again later, "
-                              "or set GITHUB_TOKEN in backend\\.env for a higher limit.")
+            raise GitHubError(
+                "GitHub's hourly limit for anonymous requests was reached. Try again later, "
+                "or set GITHUB_TOKEN in backend\\.env for a higher limit."
+            )
         if resp.status_code >= 400:
             raise GitHubError(f"GitHub returned an error ({resp.status_code}).")
         return resp.json()
@@ -145,20 +171,28 @@ def github_check(username: str, resume_text: str, client: GitHubClient, now: dat
 
     languages = []
     for lang, n in counts.most_common():
-        languages.append({"language": lang, "repos": n, "skill": language_skill(lang),
-                          "examples": by_language[lang][:EXAMPLES_PER_LANGUAGE]})
+        languages.append(
+            {
+                "language": lang,
+                "repos": n,
+                "skill": language_skill(lang),
+                "examples": by_language[lang][:EXAMPLES_PER_LANGUAGE],
+            }
+        )
 
     index = skill_index()
     resume_skills = [s for s in group_by_skill(find_mentions(resume_text)) if index[s].category in CODE_CATEGORIES]
     claims = []
     for skill in resume_skills:
         repos_for = evidence.get(skill, [])
-        claims.append({
-            "skill": skill,
-            "status": "seen" if repos_for else "not_seen",
-            "repos": len(repos_for),
-            "examples": repos_for[:EXAMPLES_PER_LANGUAGE],
-        })
+        claims.append(
+            {
+                "skill": skill,
+                "status": "seen" if repos_for else "not_seen",
+                "repos": len(repos_for),
+                "examples": repos_for[:EXAMPLES_PER_LANGUAGE],
+            }
+        )
     claims.sort(key=lambda c: (c["status"] != "seen", -c["repos"], c["skill"].lower()))
     only_github = [l for l in languages if l["skill"] and l["skill"] not in set(resume_skills)]
 
@@ -174,7 +208,9 @@ def github_check(username: str, resume_text: str, client: GitHubClient, now: dat
         "languages": languages,
         "resume_claims": claims,
         "not_on_resume": only_github,
-        "label": ("Based on public, non-fork repositories: GitHub's main language per repo, and the repo's own "
-                  "topics and description. "
-                  "Private or company work is not visible, so 'not seen' does not mean untrue."),
+        "label": (
+            "Based on public, non-fork repositories: GitHub's main language per repo, and the repo's own "
+            "topics and description. "
+            "Private or company work is not visible, so 'not seen' does not mean untrue."
+        ),
     }

@@ -24,13 +24,20 @@ class RequestSizeLimit:
         self.max_bytes = max_bytes
 
     def _message(self) -> str:
-        return (f"The upload is too large (over {self.max_bytes // (1024 * 1024)} MB in one request). "
-                "Resumes can be up to 5 MB each.")
+        return (
+            f"The upload is too large (over {self.max_bytes // (1024 * 1024)} MB in one request). "
+            "Resumes can be up to 5 MB each."
+        )
 
     async def _reject(self, send):
         body = json.dumps({"detail": self._message()}).encode()
-        await send({"type": "http.response.start", "status": 413,
-                    "headers": [(b"content-type", b"application/json"), (b"content-length", str(len(body)).encode())]})
+        await send(
+            {
+                "type": "http.response.start",
+                "status": 413,
+                "headers": [(b"content-type", b"application/json"), (b"content-length", str(len(body)).encode())],
+            }
+        )
         await send({"type": "http.response.body", "body": body})
 
     async def __call__(self, scope, receive, send):

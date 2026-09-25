@@ -49,9 +49,12 @@ def test_validation_and_not_found(make_client):
         aid = new_analysis(client)
         blank = client.post(f"/api/analyses/{aid}/rewrites", json={"bullet": "   "})
         too_long = client.post(f"/api/analyses/{aid}/rewrites", json={"bullet": "x" * 601})
-        missing = [client.get("/api/analyses/999/quality"), client.get("/api/analyses/999/ats"),
-                   client.post("/api/analyses/999/rewrites", json={"bullet": "x"}),
-                   client.get("/api/analyses/999/rewrites")]
+        missing = [
+            client.get("/api/analyses/999/quality"),
+            client.get("/api/analyses/999/ats"),
+            client.post("/api/analyses/999/rewrites", json={"bullet": "x"}),
+            client.get("/api/analyses/999/rewrites"),
+        ]
     assert blank.status_code == 422 and too_long.status_code == 422
     assert [r.status_code for r in missing] == [404, 404, 404, 404]
 

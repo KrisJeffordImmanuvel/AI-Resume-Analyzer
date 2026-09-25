@@ -18,11 +18,20 @@ class FakeRequest:
 
 
 def run(session, request):
-    return asyncio.run(analyze_and_save(
-        session, get_settings(), None, None,
-        resume_filename="cv.txt", resume_text="Python developer", jd_text="Need Python",
-        jd_source="paste", jd_filename=None, request=request,
-    ))
+    return asyncio.run(
+        analyze_and_save(
+            session,
+            get_settings(),
+            None,
+            None,
+            resume_filename="cv.txt",
+            resume_text="Python developer",
+            jd_text="Need Python",
+            jd_source="paste",
+            jd_filename=None,
+            request=request,
+        )
+    )
 
 
 def test_cancelled_analysis_is_not_saved(make_client):

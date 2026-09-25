@@ -17,10 +17,52 @@ from skills import find_mentions, group_by_skill
 
 DATE_TOLERANCE_MONTHS = 2
 _WORD = re.compile(r"[A-Za-z][A-Za-z0-9+#.&-]*")
-_STOP = {"and", "the", "of", "at", "in", "for", "a", "an", "to", "present", "current", "now",
-         "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "sept", "oct", "nov", "dec",
-         "january", "february", "march", "april", "june", "july", "august", "september", "october",
-         "november", "december", "full-time", "part-time", "yrs", "yr", "mos", "mo", "months", "years"}
+_STOP = {
+    "and",
+    "the",
+    "of",
+    "at",
+    "in",
+    "for",
+    "a",
+    "an",
+    "to",
+    "present",
+    "current",
+    "now",
+    "jan",
+    "feb",
+    "mar",
+    "apr",
+    "may",
+    "jun",
+    "jul",
+    "aug",
+    "sep",
+    "sept",
+    "oct",
+    "nov",
+    "dec",
+    "january",
+    "february",
+    "march",
+    "april",
+    "june",
+    "july",
+    "august",
+    "september",
+    "october",
+    "november",
+    "december",
+    "full-time",
+    "part-time",
+    "yrs",
+    "yr",
+    "mos",
+    "mo",
+    "months",
+    "years",
+}
 
 
 def _key_words(entry: dict) -> set[str]:
@@ -70,8 +112,14 @@ def compare_roles(resume_roles: list[dict], linkedin_roles: list[dict], today: d
             used.add(best)
             l = linkedin_roles[best]
             diff = _date_diff(_dates(r, today), _dates(l, today))
-            rows.append({"status": "date_mismatch" if diff else "consistent", "detail": diff,
-                         "resume": r["evidence"]["quote"], "linkedin": l["evidence"]["quote"]})
+            rows.append(
+                {
+                    "status": "date_mismatch" if diff else "consistent",
+                    "detail": diff,
+                    "resume": r["evidence"]["quote"],
+                    "linkedin": l["evidence"]["quote"],
+                }
+            )
         else:
             rows.append({"status": "only_resume", "detail": None, "resume": r["evidence"]["quote"], "linkedin": None})
     for i, l in enumerate(linkedin_roles):
@@ -83,8 +131,13 @@ def compare_roles(resume_roles: list[dict], linkedin_roles: list[dict], today: d
 
 
 def linkedin_check(
-    linkedin_text: str, resume_text: str, resume_profile: dict, resume_source: str,
-    provider: AIProvider | None, fallback_reason: str | None, today: date | None = None,
+    linkedin_text: str,
+    resume_text: str,
+    resume_profile: dict,
+    resume_source: str,
+    provider: AIProvider | None,
+    fallback_reason: str | None,
+    today: date | None = None,
 ) -> dict:
     today = today or date.today()
     text = clean_jd_text(linkedin_text)  # same normalisation and limits as pasted text elsewhere
@@ -95,16 +148,21 @@ def linkedin_check(
     skills = {
         "both": sorted(set(resume_skills) & set(li_skills)),
         "only_resume": sorted(set(resume_skills) - set(li_skills)),
-        "only_linkedin": [{"skill": s, "quote": li_skills[s][0].quote} for s in sorted(set(li_skills) - set(resume_skills))],
+        "only_linkedin": [
+            {"skill": s, "quote": li_skills[s][0].quote} for s in sorted(set(li_skills) - set(resume_skills))
+        ],
     }
     roles = compare_roles(resume_profile.get("experience", []), li["experience"], today)
     notices = list(li["notices"])
     if resume_source != li["source"]:
-        notices.append("The resume and LinkedIn text were read with different methods (AI vs pattern-based), "
-                       "so role matching may be less reliable. Re-run the analysis to align them.")
+        notices.append(
+            "The resume and LinkedIn text were read with different methods (AI vs pattern-based), "
+            "so role matching may be less reliable. Re-run the analysis to align them."
+        )
     if not li["experience"]:
-        notices.append("No dated roles were found in the pasted text. Paste your LinkedIn Experience section, "
-                       "including the dates.")
+        notices.append(
+            "No dated roles were found in the pasted text. Paste your LinkedIn Experience section, including the dates."
+        )
     return {
         "source": li["source"],
         "model": li["model"],

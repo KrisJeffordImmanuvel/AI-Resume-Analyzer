@@ -30,12 +30,11 @@ def _load_analysis(db: Session, analysis_id: int) -> Analysis:
 
 
 def _latest(db: Session, model, analysis_id: int):
-    return db.scalars(
-        select(model).where(model.analysis_id == analysis_id).order_by(model.id.desc()).limit(1)
-    ).first()
+    return db.scalars(select(model).where(model.analysis_id == analysis_id).order_by(model.id.desc()).limit(1)).first()
 
 
 # ---- Roadmap -----------------------------------------------------------------------
+
 
 def _roadmap_response(row: Roadmap) -> RoadmapResponse:
     return RoadmapResponse(analysis_id=row.analysis_id, created_at=_utc(row.created_at), **row.data)
@@ -54,9 +53,7 @@ async def create_roadmap(
     existing = _latest(db, Roadmap, analysis_id)
     if existing and not refresh:
         return _roadmap_response(existing)
-    data = await run_in_threadpool(
-        build_roadmap, _upgrade_legacy(analysis.result), provider, settings.fallback_reason
-    )
+    data = await run_in_threadpool(build_roadmap, _upgrade_legacy(analysis.result), provider, settings.fallback_reason)
     row = Roadmap(analysis_id=analysis_id, data=data)
     db.add(row)
     db.commit()
@@ -65,6 +62,7 @@ async def create_roadmap(
 
 
 # ---- Interview questions ------------------------------------------------------------
+
 
 def _set_response(row: InterviewSet) -> InterviewSetResponse:
     return InterviewSetResponse(
@@ -90,8 +88,12 @@ async def create_interview(
     if existing and not refresh:
         return _set_response(existing)
     questions, sources = await run_in_threadpool(
-        build_questions, analysis.resume_text, analysis.jd_text, _upgrade_legacy(analysis.result),
-        provider, settings.fallback_reason,
+        build_questions,
+        analysis.resume_text,
+        analysis.jd_text,
+        _upgrade_legacy(analysis.result),
+        provider,
+        settings.fallback_reason,
     )
     row = InterviewSet(analysis_id=analysis_id, sources=sources)
     row.questions = [InterviewQuestion(position=i, data=q) for i, q in enumerate(questions)]
@@ -102,6 +104,7 @@ async def create_interview(
 
 
 # ---- Answer feedback -----------------------------------------------------------------
+
 
 @router.post("/api/interview/questions/{question_id}/answers", response_model=FeedbackResponse, status_code=201)
 async def answer_question(

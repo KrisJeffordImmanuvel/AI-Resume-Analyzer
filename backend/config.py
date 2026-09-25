@@ -64,9 +64,7 @@ def get_settings() -> Settings:
         database_url=os.getenv("DATABASE_URL", "").strip() or default_db,
         cors_origins=[o.strip() for o in origins.split(",") if o.strip()],
         gemini_model=os.getenv("GEMINI_MODEL", "").strip() or "gemini-3.6-flash",
-        gemini_fallback_models=[
-            m.strip() for m in os.getenv("GEMINI_FALLBACK_MODELS", "").split(",") if m.strip()
-        ],
+        gemini_fallback_models=[m.strip() for m in os.getenv("GEMINI_FALLBACK_MODELS", "").split(",") if m.strip()],
         # The whole AI call (retries and backup models included). Capped so it always
         # ends before the web page stops waiting (5 minutes).
         ai_timeout_seconds=min(max(_float("AI_TIMEOUT_SECONDS", 90.0), 10.0), 240.0),

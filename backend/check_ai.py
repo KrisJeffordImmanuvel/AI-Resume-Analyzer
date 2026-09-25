@@ -93,7 +93,9 @@ def check_models(settings) -> bool:
         provider = GeminiProvider(settings.google_api_key, [name], timeout_seconds=30)
         start = time.perf_counter()
         try:
-            provider.generate_json(system="Reply in JSON.", prompt='Return {"ok": true, "reply": "pong"}.', schema=_Ping)
+            provider.generate_json(
+                system="Reply in JSON.", prompt='Return {"ok": true, "reply": "pong"}.', schema=_Ping
+            )
             elapsed = time.perf_counter() - start
             print(f"  OK      {name}  ({elapsed:.1f}s)")
             working.append((elapsed, name))
@@ -110,7 +112,11 @@ def check_models(settings) -> bool:
         print("\n  Suggested backend\\.env lines:")
         if main != settings.gemini_model:
             print(f"    GEMINI_MODEL={main}")
-        print(f"    GEMINI_FALLBACK_MODELS={','.join(backups)}" if backups else "    (no other working model to use as a backup)")
+        print(
+            f"    GEMINI_FALLBACK_MODELS={','.join(backups)}"
+            if backups
+            else "    (no other working model to use as a backup)"
+        )
     return bool(working)
 
 

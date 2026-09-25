@@ -59,9 +59,11 @@ async def unexpected_error(request: Request, exc: Exception) -> JSONResponse:
     logger.exception("Unhandled error on %s %s", request.method, request.url.path)
     return JSONResponse(
         status_code=500,
-        content={"detail": "Something went wrong on the server. The details were written to the app's "
-                           "PowerShell window. Please try again; if it keeps happening, close that window "
-                           "and run start.ps1 again."},
+        content={
+            "detail": "Something went wrong on the server. The details were written to the app's "
+            "PowerShell window. Please try again; if it keeps happening, close that window "
+            "and run start.ps1 again."
+        },
     )
 
 

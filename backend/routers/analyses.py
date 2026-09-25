@@ -11,7 +11,14 @@ from ai_provider import AIProvider, make_provider
 from analysis_service import run_analysis
 from config import Settings, get_settings
 from models import (
-    Analysis, BulletRewrite, ExternalCheck, InterviewAnswer, InterviewQuestion, InterviewSet, JobCandidate, Roadmap,
+    Analysis,
+    BulletRewrite,
+    ExternalCheck,
+    InterviewAnswer,
+    InterviewQuestion,
+    InterviewSet,
+    JobCandidate,
+    Roadmap,
 )
 from parsing import MAX_UPLOAD_BYTES, ParseError, clean_jd_text, extract_jd_file_text, extract_resume_text
 from schemas import AnalysisResponse, AnalysisSummary
@@ -47,14 +54,22 @@ def _upgrade_legacy(result: dict) -> dict:
         notices = result["sources"].get("notices", [])
         if any(n.startswith(_OLD_AI_OFF_NOTICE) for n in notices):
             # Saved before AI being off stopped counting as a notice.
-            result = {**result, "sources": {**result["sources"],
-                                            "notices": [n for n in notices if not n.startswith(_OLD_AI_OFF_NOTICE)]}}
+            result = {
+                **result,
+                "sources": {
+                    **result["sources"],
+                    "notices": [n for n in notices if not n.startswith(_OLD_AI_OFF_NOTICE)],
+                },
+            }
         return result
     result = dict(result)
     result.pop("method", None)
     result["sources"] = {
-        "extraction": "fallback", "model": None, "fallback_reason": None,
-        "semantic": "disabled", "semantic_threshold": None,
+        "extraction": "fallback",
+        "model": None,
+        "fallback_reason": None,
+        "semantic": "disabled",
+        "semantic_threshold": None,
         "notices": ["This analysis was saved by an earlier version (keyword matching only)."],
     }
     result["profile"] = {"skills": [], "experience": [], "education": [], "discarded": 0}
@@ -164,7 +179,10 @@ async def create_analysis(
 
     try:
         row = await analyze_and_save(
-            db, settings, provider, embedder,
+            db,
+            settings,
+            provider,
+            embedder,
             resume_filename=resume.filename or "resume",
             resume_text=resume_text,
             jd_text=job_text,
@@ -186,9 +204,7 @@ def get_analysis(analysis_id: int, db: Session = Depends(get_db)) -> AnalysisRes
 
 
 @router.get("", response_model=list[AnalysisSummary])
-def list_analyses(
-    limit: int = Query(20, ge=1, le=100), db: Session = Depends(get_db)
-) -> list[AnalysisSummary]:
+def list_analyses(limit: int = Query(20, ge=1, le=100), db: Session = Depends(get_db)) -> list[AnalysisSummary]:
     """Recent Job Seeker analyses, newest first (Job Provider candidates are listed under their job)."""
     in_jobs = select(JobCandidate.analysis_id)
     rows = db.scalars(
@@ -198,10 +214,16 @@ def list_analyses(
     for row in rows:
         title = next((line.strip() for line in row.jd_text.split("\n") if line.strip()), "")
         created_at = row.created_at if row.created_at.tzinfo else row.created_at.replace(tzinfo=timezone.utc)
-        out.append(AnalysisSummary(
-            id=row.id, created_at=created_at, resume_filename=row.resume_filename, jd_title=title[:120],
-            score=row.score, extraction=_upgrade_legacy(row.result)["sources"]["extraction"],
-        ))
+        out.append(
+            AnalysisSummary(
+                id=row.id,
+                created_at=created_at,
+                resume_filename=row.resume_filename,
+                jd_title=title[:120],
+                score=row.score,
+                extraction=_upgrade_legacy(row.result)["sources"]["extraction"],
+            )
+        )
     return out
 
 

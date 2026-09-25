@@ -17,7 +17,12 @@ from parsing import ParseError
 from routers.analyses import _upgrade_legacy, get_ai_provider, get_db
 from routers.coaching import _load_analysis
 from schemas import (
-    EvidenceSummary, FairnessResponse, GitHubRequest, GitHubResponse, LinkedInRequest, LinkedInResponse,
+    EvidenceSummary,
+    FairnessResponse,
+    GitHubRequest,
+    GitHubResponse,
+    LinkedInRequest,
+    LinkedInResponse,
 )
 
 router = APIRouter(tags=["external evidence"])
@@ -95,8 +100,13 @@ async def run_linkedin_check(
     result = _upgrade_legacy(analysis.result)
     try:
         data = await run_in_threadpool(
-            linkedin_check, body.text, analysis.resume_text, result.get("profile", {}),
-            result["sources"]["extraction"], provider, settings.fallback_reason,
+            linkedin_check,
+            body.text,
+            analysis.resume_text,
+            result.get("profile", {}),
+            result["sources"]["extraction"],
+            provider,
+            settings.fallback_reason,
         )
     except ParseError as exc:
         raise HTTPException(exc.status, exc.message.replace("job description", "LinkedIn text")) from exc
