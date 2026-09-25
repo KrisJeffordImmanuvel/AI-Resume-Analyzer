@@ -58,77 +58,88 @@ git clone https://github.com/KrisJeffordImmanuvel/AI-Resume-Analyzer.git ai-resu
 cd ai-resume-analyzer-app
 ```
 
-### 2. Backend
+### 2. Run the setup script
 
 ```powershell
-cd backend
-python -m venv venv
-.\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-Copy-Item .env.example .env
+.\setup.ps1
 ```
 
+It creates the Python environment (`backend\venv`), installs the Python and
+Node.js packages, creates your settings file `backend\.env` from the template,
+and builds the web page. The first run downloads PyTorch (used only by the
+optional semantic matching); it is large and can take several minutes.
+
 - If PowerShell says *"running scripts is disabled on this system"*, run this
-  once, then run `.\venv\Scripts\Activate.ps1` again:
+  once, then run `.\setup.ps1` again:
   ```powershell
   Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
   ```
-- After activating, the prompt starts with `(venv)`.
-- `pip install` also downloads PyTorch (used only by the optional semantic
-  matching). It is large and can take several minutes.
-- Run `Copy-Item .env.example .env` **only once**. Running it again replaces
-  your settings (including your key) with the blank template.
+- `setup.ps1` is safe to run again at any time. It never overwrites an existing
+  `backend\.env`, so your key is kept.
 
-To turn on AI, open the settings file and paste your key after
-`GOOGLE_API_KEY=` (no spaces, no quotes), then save:
+### 3. Optional: turn on AI
+
+Open the settings file and paste your key after `GOOGLE_API_KEY=` (no spaces,
+no quotes), then save:
 
 ```powershell
-notepad .env
+notepad backend\.env
 ```
 
 Check that AI works (one small real Gemini request):
 
 ```powershell
+cd backend
+.\venv\Scripts\Activate.ps1
 python check_ai.py
+cd ..
 ```
 
 It ends with `All checks passed.` or explains what failed.
 
-### 3. Frontend
-
-Open a **second** PowerShell window:
-
-```powershell
-cd $HOME\ai-resume-analyzer-app\frontend
-npm install
-```
-
 ## Running the app every day
 
-Use two PowerShell windows.
-
-**Window 1: backend**
+In PowerShell, from the project folder:
 
 ```powershell
+cd $HOME\ai-resume-analyzer-app
+.\start.ps1
+```
+
+Your browser opens **http://localhost:8000** once the app is ready. Keep this
+one window open while you use the app; press **Ctrl+C** in it to stop.
+
+The small label at the top right of the page shows the app's state. Click it
+for details:
+
+- **AI on**: AI features are working.
+- **AI off**: no key is set (or `DEMO_MODE=true`). Everything still works with
+  the built-in rules.
+- **Server offline**: the PowerShell window was closed or stopped. Run
+  `.\start.ps1` again; the page reconnects by itself.
+
+Options: `.\start.ps1 -Port 8001` uses another port; `.\start.ps1 -NoBrowser`
+does not open the browser. After an update, `start.ps1` rebuilds the web page
+automatically the first time.
+
+### Development mode (only for changing the code)
+
+Instant reload while editing uses two windows:
+
+```powershell
+# Window 1
 cd $HOME\ai-resume-analyzer-app\backend
 .\venv\Scripts\Activate.ps1
 uvicorn main:app --reload
 ```
 
-Wait for `Application startup complete.`
-
-**Window 2: frontend**
-
 ```powershell
+# Window 2
 cd $HOME\ai-resume-analyzer-app\frontend
 npm run dev
 ```
 
-Open **http://localhost:5173**. The System status card should show
-**Backend: Connected (v1.0.0)**, **Database: OK**, and **AI: Live** (with a key)
-or **Fallback mode** (without one).
-
-To stop, press **Ctrl+C** in each window.
+Then open **http://localhost:5173**.
 
 ## Using the app
 
@@ -209,9 +220,9 @@ The `samples` folder has fictional resumes and a job description.
 
 ## Settings (backend\.env)
 
-Edit with `notepad .env` in the `backend` folder, then **restart the backend**
-(Ctrl+C, then `uvicorn main:app --reload`). The backend reads `.env` only when
-it starts.
+Edit with `notepad backend\.env` from the project folder, then **restart the
+app** (Ctrl+C in its window, then `.\start.ps1`). Settings are read only when
+the app starts.
 
 | Setting | Default | What it does |
 |---|---|---|
@@ -225,13 +236,15 @@ it starts.
 | `SEMANTIC_THRESHOLD` | `0.6` | Minimum similarity (0–1) for a semantic match |
 | `GITHUB_TOKEN` | *(blank)* | Optional token with no scopes; raises the GitHub check's limit from 60 to 5,000 requests per hour |
 | `DATABASE_URL` | `backend\app.db` | Where analyses are stored (SQLite) |
-| `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Web addresses allowed to call the backend |
+| `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Web addresses allowed to call the backend (development mode only) |
 
-The frontend needs no settings unless the backend runs somewhere other than
-`http://localhost:8000`. In that case copy `frontend\.env.example` to
+The frontend needs no settings. In development mode only, if the backend runs
+somewhere other than `http://localhost:8000`, copy `frontend\.env.example` to
 `frontend\.env` and set `VITE_API_BASE_URL`.
 
 ### Checking AI
+
+From the `backend` folder, with `.\venv\Scripts\Activate.ps1` run first:
 
 ```powershell
 python check_ai.py            # key, model, one tiny request; semantic model if enabled
@@ -240,34 +253,32 @@ python check_ai.py --models   # list the Gemini models your key can use and ping
 
 ## Updating to a new version
 
-Stop the backend and frontend (Ctrl+C), then:
+Stop the app (Ctrl+C in its window), then:
 
 ```powershell
 cd $HOME\ai-resume-analyzer-app
 git checkout main
 git pull
-cd backend
-.\venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-cd ..\frontend
-npm install
+.\setup.ps1
+.\start.ps1
 ```
 
-Then start both again. Your `backend\.env`, `backend\app.db`, `venv` and
-`node_modules` are not touched by updates; new database tables are added
-automatically.
+Your `backend\.env` and `backend\app.db` are not touched by updates; new
+database tables are added automatically.
 
 ## Troubleshooting
 
 | Problem | Cause and fix |
 |---|---|
-| `Error loading ASGI app. Could not import module "main"` | uvicorn was started outside the `backend` folder. Run `cd $HOME\ai-resume-analyzer-app\backend` first |
-| `python: can't open file ...check_ai.py` | Same: run it from the `backend` folder |
-| Prompt does not start with `(venv)` | Run `.\venv\Scripts\Activate.ps1` in the `backend` folder |
 | "running scripts is disabled on this system" | Run `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned` once |
-| Page says **Backend: Not reachable** | The backend is not running. Start it in window 1, then click **Recheck** |
-| You changed `.env` but nothing changed | Restart the backend (Ctrl+C, then `uvicorn main:app --reload`) |
-| AI shows **Fallback mode** although you set a key | Check the key line with `[bool](Select-String -Path .env -Pattern '^GOOGLE_API_KEY=\S')` (prints `True` without showing the key), then restart the backend. Make sure only **one** backend window is running: an old one can keep answering on port 8000 |
+| "setup.ps1 is not digitally signed" | The files came from a downloaded ZIP. Run `Unblock-File .\setup.ps1, .\start.ps1` once |
+| "The app is not set up yet" | Run `.\setup.ps1` first |
+| "Port 8000 is already in use" | The app is already running in another window. Use that window (or open http://localhost:8000), or close it and run `.\start.ps1` again |
+| The page says "The app's web page has not been built yet" | The server was started without `start.ps1`. Stop it and run `.\start.ps1`, which builds the page |
+| The label at the top shows **Server offline** | The app's PowerShell window was closed or stopped. Run `.\start.ps1` again |
+| You changed `.env` but nothing changed | Restart the app (Ctrl+C in its window, then `.\start.ps1`) |
+| The label shows **AI off** although you set a key | Check the key line with `[bool](Select-String -Path backend\.env -Pattern '^GOOGLE_API_KEY=\S')` (prints `True` without showing the key), then restart the app. Make sure only **one** app window is running |
+| `python: can't open file ...check_ai.py` | Run it from the `backend` folder, after `.\venv\Scripts\Activate.ps1` |
 | `404 NOT_FOUND ... model is no longer available` | Set `GEMINI_MODEL` to a model from `python check_ai.py --models` |
 | `503 UNAVAILABLE ... high demand` | Google is busy. The app retries and then falls back; add backups with `GEMINI_FALLBACK_MODELS` |
 | `notepad .env` asks to create a new file | You are in the wrong folder; the settings file is `backend\.env` |
@@ -276,7 +287,7 @@ automatically.
 | A PDF gives "No text could be extracted" | It is probably a scanned image. Export it from Word as a text-based PDF or upload the DOCX |
 | `DLL load failed` when semantic matching loads | Install the latest Microsoft Visual C++ Redistributable (x64), or leave `SEMANTIC_MATCHING=false` |
 | A tab says "This section could not be displayed" | A display error in that tab only. Click **Try again**; details are in the browser console (F12) |
-| An error mentions "the backend window" | The backend hit an unexpected error; the details are printed in window 1. Restart the backend and try again |
+| An error mentions "the app's PowerShell window" | The server hit an unexpected error; the details are printed in that window. Try again, or restart the app |
 
 ## Privacy and your data
 
@@ -302,7 +313,7 @@ cd $HOME\ai-resume-analyzer-app\backend
 pytest
 ```
 
-The suite (215 tests) never makes live AI or network calls. Gemini, the
+The suite (222 tests) never makes live AI or network calls. Gemini, the
 embedding model and GitHub are replaced by stand-ins, so the tests are fast,
 deterministic and free to run. To check that the frontend builds:
 
@@ -315,7 +326,7 @@ npm run build
 
 ```
 backend\
-  main.py               FastAPI app, /health, error handling
+  main.py               FastAPI app, /health, error handling, serves the built page
   config.py             settings from backend\.env
   parsing.py            PDF / DOCX / TXT text extraction and limits
   skills.py             skill recognition against data\skills.json
@@ -333,6 +344,8 @@ backend\
   tests\                pytest suite
 frontend\src\           React + Vite user interface
 samples\                fictional resumes and a job description
+setup.ps1               one-time setup (safe to run again)
+start.ps1               starts the app at http://localhost:8000
 PROJECT_SPEC.md         feature map, derived requirements and build phases
 ```
 

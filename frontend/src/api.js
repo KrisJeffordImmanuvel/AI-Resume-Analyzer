@@ -1,6 +1,8 @@
 import axios from 'axios'
 
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+// The built app is served by the backend itself, so it calls its own address.
+// Only the development server (npm run dev, port 5173) needs the backend's URL.
+export const API_BASE_URL = import.meta.env.DEV ? import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000' : ''
 
 // Generous timeout: an analysis may wait on Gemini and, the first time, on the
 // semantic model download.
@@ -25,7 +27,7 @@ export function errorMessage(err) {
   const detail = err?.response?.data?.detail
   if (typeof detail === 'string') return detail
   if (Array.isArray(detail)) return detail.map((d) => d.msg).join('; ')
-  if (err?.request && !err?.response) return `Could not reach the backend at ${API_BASE_URL}. Is uvicorn running?`
+  if (err?.request && !err?.response) return 'Could not reach the app server. Make sure it is still running (start.ps1), then try again.'
   return err?.message || 'Something went wrong.'
 }
 

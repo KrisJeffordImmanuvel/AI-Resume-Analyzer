@@ -27,6 +27,7 @@ class Settings:
     semantic_model: str
     semantic_threshold: float
     github_token: str
+    frontend_dist: Path
 
     @property
     def has_api_key(self) -> bool:
@@ -73,4 +74,7 @@ def get_settings() -> Settings:
         semantic_model=os.getenv("SEMANTIC_MODEL", "").strip() or "sentence-transformers/all-MiniLM-L6-v2",
         semantic_threshold=_float("SEMANTIC_THRESHOLD", 0.6),
         github_token=os.getenv("GITHUB_TOKEN", "").strip(),
+        # The built frontend (npm run build). When present, the backend serves the
+        # whole app at one address; see start.ps1.
+        frontend_dist=Path(os.getenv("FRONTEND_DIST", "").strip() or BACKEND_DIR.parent / "frontend" / "dist"),
     )

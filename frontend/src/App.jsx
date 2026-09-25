@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Briefcase, User } from 'lucide-react'
-import HealthStatus from './HealthStatus.jsx'
+import StatusIndicator from './StatusIndicator.jsx'
 import AnalyzeForm from './AnalyzeForm.jsx'
 import AnalysisResults from './AnalysisResults.jsx'
 import Provider from './Provider.jsx'
@@ -38,7 +38,10 @@ export default function App() {
 
   return (
     <main className="app">
-      <h1>AI Resume &amp; Career Intelligence Platform</h1>
+      <header className="app-header">
+        <h1>AI Resume &amp; Career Intelligence Platform</h1>
+        <StatusIndicator />
+      </header>
       <div className="mode-switch" role="tablist" aria-label="Mode">
         <button type="button" role="tab" aria-selected={mode === 'seeker'}
           className={mode === 'seeker' ? 'tab tab--active' : 'tab'} onClick={() => switchMode('seeker')}>
@@ -54,7 +57,6 @@ export default function App() {
           ? 'Upload a resume and a job description to see an evidence-backed fit report.'
           : 'Set a job description once, then upload candidate resumes and compare them side by side.'}
       </p>
-      <HealthStatus />
       {mode === 'seeker' ? (
         <>
           <AnalyzeForm onResult={onNewResult} />
