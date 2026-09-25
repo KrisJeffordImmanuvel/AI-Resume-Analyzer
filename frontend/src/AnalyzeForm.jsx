@@ -1,6 +1,8 @@
 import { useRef, useState } from 'react'
 import { FileText, Upload, ClipboardPaste, Loader2, Search, FlaskConical } from 'lucide-react'
 import { MAX_TEXT_CHARS, createAnalysis, errorMessage, getSamples } from './api.js'
+import { announce } from './Announcer.jsx'
+import { TabList, TabPanel } from './Tabs.jsx'
 
 const RESUME_TYPES = '.pdf,.docx,.txt'
 const MAX_MB = 5
@@ -29,6 +31,7 @@ export default function AnalyzeForm({ onResult }) {
   async function run(input) {
     setBusy(true)
     setError(null)
+    announce('Analyzing. This can take up to a minute.')
     try {
       onResult(await createAnalysis(input))
     } catch (err) {
@@ -109,46 +112,37 @@ export default function AnalyzeForm({ onResult }) {
 
       <fieldset className="field">
         <legend className="field__label">Job description</legend>
-        <div className="tabs" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={jdMode === 'paste'}
-            className={jdMode === 'paste' ? 'tab tab--active' : 'tab'}
-            onClick={() => setJdMode('paste')}
-          >
-            <ClipboardPaste size={16} aria-hidden="true" /> Paste text
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={jdMode === 'upload'}
-            className={jdMode === 'upload' ? 'tab tab--active' : 'tab'}
-            onClick={() => setJdMode('upload')}
-          >
-            <Upload size={16} aria-hidden="true" /> Upload .txt
-          </button>
-        </div>
-        {jdMode === 'paste' ? (
-          <textarea
-            rows={10}
-            placeholder="Paste the full job description here…"
-            value={jdText}
-            onChange={(e) => {
-              setJdText(e.target.value)
-              setUsingSample(false)
-            }}
-          />
-        ) : (
-          <input
-            type="file"
-            accept=".txt"
-            onChange={(e) => {
-              setJdFile(e.target.files[0] || null)
-              setUsingSample(false)
-            }}
-          />
-        )}
+        <TabList
+          id="jd"
+          label="How to add the job description"
+          tabs={[['paste', 'Paste text', ClipboardPaste], ['upload', 'Upload .txt', Upload]]}
+          value={jdMode}
+          onChange={setJdMode}
+        />
+        <TabPanel id="jd" value={jdMode} className="field">
+          {jdMode === 'paste' ? (
+            <textarea
+              rows={10}
+              aria-label="Job description text"
+              placeholder="Paste the full job description here…"
+              value={jdText}
+              onChange={(e) => {
+                setJdText(e.target.value)
+                setUsingSample(false)
+              }}
+            />
+          ) : (
+            <input
+              type="file"
+              accept=".txt"
+              aria-label="Job description file (.txt)"
+              onChange={(e) => {
+                setJdFile(e.target.files[0] || null)
+                setUsingSample(false)
+              }}
+            />
+          )}
+        </TabPanel>
       </fieldset>
 
       {error && (

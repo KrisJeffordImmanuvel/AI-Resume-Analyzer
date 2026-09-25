@@ -184,8 +184,17 @@ The results have seven tabs:
    missing. **Report** opens that candidate's full seven-tab report; the bin icon
    removes them from the comparison.
 5. **Skill matrix**: each job skill against each candidate: ✓ Named (full
-   credit), − Related (half credit), ✗ Missing. Hover a cell to see the resume line behind it.
+   credit), − Related (half credit), ✗ Missing. Click a Named or Related cell
+   (or press Enter on it) to see the resume line behind it.
 6. **Blind review** hides file names and shows Candidate A, B, C… instead.
+
+### Keyboard and screen readers
+
+- Everything works with the keyboard. **Tab** moves between controls (with a
+  visible focus ring); in a row of tabs (mode, report sections, Paste/Upload),
+  **Left/Right**, **Home** and **End** switch tabs.
+- Screen readers announce when an analysis starts and finishes (with the
+  score), and when candidates are added in Job Provider mode.
 
 ### Try it with the sample files
 

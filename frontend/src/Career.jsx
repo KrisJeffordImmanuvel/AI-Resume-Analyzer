@@ -187,7 +187,7 @@ export default function Career({ analysisId }) {
     getCareer(analysisId).then(setData).catch((e) => setError(errorMessage(e)))
   }, [analysisId])
 
-  if (error) return <section className="card"><p className="form__error">{error}</p></section>
+  if (error) return <section className="card"><p className="form__error" role="alert">{error}</p></section>
   if (!data) return <section className="card"><p className="muted">Loading…</p></section>
   return (
     <>

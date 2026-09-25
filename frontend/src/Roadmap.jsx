@@ -34,7 +34,7 @@ export default function Roadmap({ analysisId }) {
           {loading ? 'Working…' : 'Regenerate'}
         </button>
       </header>
-      {error && <p className="form__error">{error}</p>}
+      {error && <p className="form__error" role="alert">{error}</p>}
       {data && (
         <>
           <SourceNote

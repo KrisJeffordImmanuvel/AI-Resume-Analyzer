@@ -34,13 +34,13 @@ export default function RecentAnalyses({ refreshKey, currentId, onOpen, onDelete
     }
   }
 
-  if (!items || items.length === 0) return error ? <p className="form__error">{error}</p> : null
+  if (!items || items.length === 0) return error ? <p className="form__error" role="alert">{error}</p> : null
   return (
     <details className="card recent">
       <summary>
         <History size={16} aria-hidden="true" /> Recent analyses <span className="count">{items.length}</span>
       </summary>
-      {error && <p className="form__error">{error}</p>}
+      {error && <p className="form__error" role="alert">{error}</p>}
       <ul className="recent__list">
         {items.map((a) => (
           <li key={a.id} className={a.id === currentId ? 'recent__item recent__item--open' : 'recent__item'}>

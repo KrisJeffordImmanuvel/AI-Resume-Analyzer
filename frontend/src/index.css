@@ -4,7 +4,7 @@
   --text: #1c2430;
   --muted: #5b6675;
   --border: #dde2e8;
-  --good: #1a7f4b;
+  --good: #16703f; /* 5.4:1 on --good-bg */
   --warn: #9a6200;
   --bad: #b42318;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -51,6 +51,7 @@ h1 { font-size: 1.6rem; margin: 0 0 4px; }
   --bad-bg: #fdecea;
   --info: #1f4a8a;
   --info-bg: #eef3fb;
+  --field-border: #7b8594; /* 3:1 or more against cards and page */
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -62,6 +63,7 @@ h1 { font-size: 1.6rem; margin: 0 0 4px; }
     --bad-bg: #3a1a18;
     --info: #b4c8f0;
     --info-bg: #19243a;
+    --field-border: #6b778a;
   }
 }
 
@@ -76,7 +78,7 @@ h1 { font-size: 1.6rem; margin: 0 0 4px; }
 .field input[type='file'] { color: var(--text); }
 textarea {
   width: 100%; box-sizing: border-box; resize: vertical; font: inherit; color: var(--text);
-  background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 10px;
+  background: var(--bg); border: 1px solid var(--field-border); border-radius: 6px; padding: 10px;
 }
 .tabs { display: flex; gap: 8px; }
 .tab, .primary {
@@ -383,3 +385,19 @@ details .quote { margin-top: 6px; }
 }
 .results-anchor { scroll-margin-top: 16px; }
 .results-anchor:focus { outline: none; }
+
+/* ---- Accessibility ---- */
+/* A clear focus ring for keyboard users (not shown on mouse clicks). */
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+textarea:focus-visible, .text-input:focus-visible, select:focus-visible { outline-offset: 0; }
+.results-anchor:focus-visible, .provider-report:focus-visible { outline: none; }
+.text-input, select { border-color: var(--field-border); }
+.raw:focus-visible, .matrix-scroll:focus-visible { outline-offset: -3px; }
+.matrix-cell--button { font: inherit; border: 1px solid transparent; cursor: pointer; }
+.matrix-cell--button:hover, .matrix-cell--shown { border-color: currentColor; }
+.matrix-quote:empty { display: none; }
+.matrix-quote { margin-top: 12px; font-size: 0.9rem; }
+.matrix-quote p { margin: 0 0 6px; }
+@media (prefers-reduced-motion: reduce) {
+  .spin { animation: none; }
+}
