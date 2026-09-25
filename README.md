@@ -176,6 +176,8 @@ The results have seven tabs:
 1. Click **Job Provider**.
 2. Create a job: paste the job description (or upload a `.txt`) and optionally
    give it a title. Saved jobs can be picked again from the dropdown.
+   **Delete job** removes the selected job and permanently deletes its
+   candidates' resumes and reports (you are asked to confirm first).
 3. Under **Add candidates**, choose up to 10 resumes at a time and click
    **Add candidates**. Each resume is analysed with exactly the same engine as
    Job Seeker mode. A file that cannot be read, or a resume already in the
@@ -309,7 +311,8 @@ database tables are added automatically.
 
 - Everything is stored locally in `backend\app.db` on your computer. Delete an
   analysis from **Recent analyses** to remove its resume text and everything
-  generated from it, or delete `app.db` to reset everything (it is recreated on
+  generated from it, use **Delete job** in Job Provider mode to remove a job
+  and its candidates, or delete `app.db` to reset everything (it is recreated on
   the next start).
 - With a Gemini key, resume and job-description text is sent to Google's Gemini
   API for the AI features. Without a key (or with `DEMO_MODE=true`), nothing is
@@ -329,7 +332,7 @@ cd $HOME\ai-resume-analyzer-app\backend
 pytest
 ```
 
-The suite (226 tests) never makes live AI or network calls. Gemini, the
+The suite (228 tests) never makes live AI or network calls. Gemini, the
 embedding model and GitHub are replaced by stand-ins, so the tests are fast,
 deterministic and free to run. To check that the frontend builds:
 

@@ -137,6 +137,10 @@ export async function addCandidates(jobId, files) {
   return data
 }
 
+export async function deleteJob(jobId) {
+  await api.delete(`/api/jobs/${jobId}`)
+}
+
 export async function removeCandidate(jobId, analysisId) {
   await api.delete(`/api/jobs/${jobId}/candidates/${analysisId}`)
 }

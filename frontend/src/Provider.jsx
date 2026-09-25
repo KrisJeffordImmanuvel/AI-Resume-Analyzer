@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Briefcase, ClipboardPaste, EyeOff, FileText, Loader2, Plus, Trash2, Upload, Users, Check, Minus, X, Info } from 'lucide-react'
-import { addCandidates, createJob, errorMessage, getAnalysis, getJob, listJobs, removeCandidate } from './api.js'
+import { addCandidates, createJob, deleteJob, errorMessage, getAnalysis, getJob, listJobs, removeCandidate } from './api.js'
 import AnalysisResults from './AnalysisResults.jsx'
 import { announce } from './Announcer.jsx'
 import { TabList, TabPanel } from './Tabs.jsx'
@@ -335,6 +335,25 @@ export default function Provider() {
     }
   }
 
+  async function removeJob() {
+    const n = job.candidates.length
+    const also = n ? ` and its ${n} candidate${n === 1 ? '' : 's'} (their resumes and reports)` : ''
+    if (!window.confirm(`Delete the job "${job.title}"${also}? This cannot be undone.`)) return
+    setError(null)
+    try {
+      await deleteJob(job.id)
+      const rest = jobs.filter((j) => j.id !== job.id)
+      setJobs(rest)
+      setJob(null)
+      setOpen(null)
+      setOutcomes([])
+      if (rest.length === 0) setCreating(true)
+      announce(`Job "${job.title}" deleted.`)
+    } catch (e) {
+      setError(errorMessage(e))
+    }
+  }
+
   async function openReport(analysisId) {
     try {
       setOpen(await getAnalysis(analysisId))
@@ -367,6 +386,11 @@ export default function Provider() {
           <button type="button" className="icon-button" onClick={() => setCreating(true)} disabled={creating}>
             <Plus size={15} aria-hidden="true" /> New job
           </button>
+          {job && !creating && (
+            <button type="button" className="icon-button icon-button--danger" onClick={removeJob}>
+              <Trash2 size={15} aria-hidden="true" /> Delete job
+            </button>
+          )}
         </div>
         {creating && <NewJobForm onCreated={onCreated} onCancel={jobs.length ? () => setCreating(false) : null} />}
         {job && !creating && (

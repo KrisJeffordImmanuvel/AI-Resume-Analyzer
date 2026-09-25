@@ -267,7 +267,7 @@ details .quote { margin-top: 6px; }
 .inline-form { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
 .inline-form input {
   flex: 1; min-width: 160px; font: inherit; color: var(--text); background: var(--bg);
-  border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px;
+  border: 1px solid var(--field-border); border-radius: 6px; padding: 8px 10px;
 }
 .repo-list { margin: 4px 0 0 24px; padding-left: 16px; font-size: 0.9rem; }
 .repo-list a { color: var(--accent); }
@@ -401,3 +401,4 @@ textarea:focus-visible, .text-input:focus-visible, select:focus-visible { outlin
 @media (prefers-reduced-motion: reduce) {
   .spin { animation: none; }
 }
+.icon-button--danger { color: var(--bad); }

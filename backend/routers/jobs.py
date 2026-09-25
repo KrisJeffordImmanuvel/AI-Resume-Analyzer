@@ -9,9 +9,11 @@ from sqlalchemy.orm import Session
 from ai_provider import AIProvider
 from comparison import compare
 from config import Settings, get_settings
-from models import Job, JobCandidate
+from models import Analysis, Job, JobCandidate
 from parsing import ParseError, clean_jd_text, extract_jd_file_text, extract_resume_text
-from routers.analyses import _read_limited, _upgrade_legacy, analyze_and_save, get_ai_provider, get_db, get_embedder
+from routers.analyses import (
+    _read_limited, _upgrade_legacy, analyze_and_save, delete_analysis_rows, get_ai_provider, get_db, get_embedder,
+)
 from schemas import CandidateUploadResponse, JobDetail, JobSummary
 from semantic import Embedder
 
@@ -138,5 +140,25 @@ def remove_candidate(job_id: int, analysis_id: int, db: Session = Depends(get_db
     if link is None:
         raise HTTPException(404, "Candidate not found in this job.")
     job.candidates.remove(link)  # the analysis itself is kept
+    db.commit()
+    return Response(status_code=204)
+
+
+@router.delete("/{job_id}", status_code=204)
+def delete_job(job_id: int, db: Session = Depends(get_db)) -> Response:
+    """Permanently delete a job and its candidates' analyses (resume text and everything generated).
+
+    Candidate analyses are only listed under their job, so keeping them would make them reappear
+    in Job Seeker's recent analyses. An analysis that is also in another job is kept.
+    """
+    job = _load_job(db, job_id)
+    analysis_ids = [c.analysis_id for c in job.candidates]
+    db.delete(job)  # also removes its candidate links
+    db.flush()
+    still_linked = set(db.scalars(select(JobCandidate.analysis_id).where(JobCandidate.analysis_id.in_(analysis_ids))))
+    for analysis_id in analysis_ids:
+        row = db.get(Analysis, analysis_id)
+        if row is not None and analysis_id not in still_linked:
+            delete_analysis_rows(db, row)
     db.commit()
     return Response(status_code=204)
