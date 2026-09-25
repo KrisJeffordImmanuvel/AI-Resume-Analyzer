@@ -94,3 +94,32 @@ class ExternalCheck(Base):
     kind: Mapped[str] = mapped_column(String(20))  # "github" or "linkedin"
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     data: Mapped[dict] = mapped_column(JSON)
+
+
+class Job(Base):
+    """Job Provider mode: one job description that many candidates are compared against."""
+
+    __tablename__ = "jobs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    title: Mapped[str] = mapped_column(String(200))
+    jd_source: Mapped[str] = mapped_column(String(10))  # "upload" or "paste"
+    jd_filename: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    jd_text: Mapped[str] = mapped_column(Text)
+    candidates: Mapped[list["JobCandidate"]] = relationship(
+        back_populates="job", order_by="JobCandidate.id", cascade="all, delete-orphan"
+    )
+
+
+class JobCandidate(Base):
+    """Links a job to one candidate's analysis (a normal Analysis row, same engine)."""
+
+    __tablename__ = "job_candidates"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    job_id: Mapped[int] = mapped_column(ForeignKey("jobs.id"), index=True)
+    analysis_id: Mapped[int] = mapped_column(ForeignKey("analyses.id"), index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    job: Mapped[Job] = relationship(back_populates="candidates")
+    analysis: Mapped[Analysis] = relationship()

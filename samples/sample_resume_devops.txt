@@ -1,0 +1,22 @@
+Arjun Mehta
+DevOps Engineer | Bengaluru, India | arjun.mehta@example.com
+
+SUMMARY
+DevOps engineer with 5 years of experience running cloud infrastructure and CI/CD for Python services.
+
+EXPERIENCE
+DevOps Engineer, Example Cloud Solutions (Mar 2021 - Present)
+- Built CI/CD pipelines in GitHub Actions and Jenkins that cut release time from 2 days to 40 minutes.
+- Migrated 30 services to Kubernetes on AWS EKS using Terraform and Helm.
+- Wrote Python and Bash automation for backups, cutting manual on-call work by 50%.
+- Set up Prometheus and Grafana monitoring for 120 containers.
+
+Systems Administrator, Sample Hosting Ltd (Jun 2019 - Feb 2021)
+- Managed Linux servers and PostgreSQL databases for 40 customers.
+- Containerized legacy apps with Docker.
+
+SKILLS
+Python, Bash, Docker, Kubernetes, Terraform, AWS, CI/CD, Jenkins, Linux, PostgreSQL, Prometheus, Grafana, Git
+
+EDUCATION
+B.Sc. Computer Science, Example University, 2019

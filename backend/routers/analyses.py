@@ -72,6 +72,44 @@ def _to_response(row: Analysis) -> AnalysisResponse:
     )
 
 
+async def analyze_and_save(
+    db: Session,
+    settings: Settings,
+    provider: AIProvider | None,
+    embedder: Embedder | None,
+    *,
+    resume_filename: str,
+    resume_text: str,
+    jd_text: str,
+    jd_source: str,
+    jd_filename: str | None,
+) -> Analysis:
+    """The one analysis path, shared by Job Seeker and Job Provider modes."""
+    # AI calls and model loading are slow and blocking, so keep them off the event loop.
+    result = await run_in_threadpool(
+        run_analysis,
+        resume_text,
+        jd_text,
+        provider=provider,
+        fallback_reason=settings.fallback_reason,
+        embedder=embedder,
+        semantic_threshold=settings.semantic_threshold,
+    )
+    row = Analysis(
+        resume_filename=resume_filename,
+        resume_text=resume_text,
+        jd_source=jd_source,
+        jd_filename=jd_filename,
+        jd_text=jd_text,
+        score=result["score"]["value"],
+        result=result,
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return row
+
+
 @router.post("", response_model=AnalysisResponse, status_code=201)
 async def create_analysis(
     resume: UploadFile = File(..., description="Resume as PDF, DOCX or TXT."),
@@ -96,28 +134,14 @@ async def create_analysis(
     except ParseError as exc:
         raise HTTPException(exc.status, exc.message) from exc
 
-    # AI calls and model loading are slow and blocking, so keep them off the event loop.
-    result = await run_in_threadpool(
-        run_analysis,
-        resume_text,
-        job_text,
-        provider=provider,
-        fallback_reason=settings.fallback_reason,
-        embedder=embedder,
-        semantic_threshold=settings.semantic_threshold,
-    )
-    row = Analysis(
+    row = await analyze_and_save(
+        db, settings, provider, embedder,
         resume_filename=resume.filename or "resume",
         resume_text=resume_text,
+        jd_text=job_text,
         jd_source="upload" if has_file else "paste",
         jd_filename=jd_file.filename if has_file else None,
-        jd_text=job_text,
-        score=result["score"]["value"],
-        result=result,
     )
-    db.add(row)
-    db.commit()
-    db.refresh(row)
     return _to_response(row)
 
 

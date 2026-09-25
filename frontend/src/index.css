@@ -279,3 +279,50 @@ details .quote { margin-top: 6px; }
 .card h2 svg { vertical-align: -3px; margin-right: 4px; }
 .fair-suggestion { margin-top: 6px; }
 .subhead svg, .muted svg { vertical-align: -2px; }
+
+/* ---- Phase 7: Job Provider mode ---- */
+.mode-switch { display: flex; gap: 8px; margin: 12px 0 8px; }
+.mode-switch .tab { padding: 8px 16px; }
+.text-input {
+  font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 8px 10px; min-width: 0; flex: 1;
+}
+.jd-details { margin-top: 12px; }
+.jd-details summary { cursor: pointer; color: var(--muted); }
+.outcomes { list-style: none; margin: 12px 0 0; padding: 0; font-size: 0.9rem; }
+.outcome { padding: 6px 10px; border-radius: 6px; margin-top: 6px; overflow-wrap: anywhere; }
+.outcome--added { background: var(--good-bg); color: var(--good); }
+.outcome--duplicate { background: var(--warn-bg); color: var(--warn); }
+.outcome--error { background: var(--bad-bg); color: var(--bad); }
+.blind-toggle { display: flex; align-items: center; gap: 8px; margin: 16px 0 0; cursor: pointer; }
+.ranking td.actions { white-space: nowrap; text-align: right; }
+.ranking td.actions .icon-button + .icon-button { margin-left: 6px; }
+.row-open td { background: var(--bg); }
+.matrix-scroll { max-width: 100%; }
+.matrix { border-collapse: collapse; font-size: 0.85rem; }
+.matrix th, .matrix td { padding: 6px 8px; border-top: 1px solid var(--border); text-align: center; white-space: nowrap; }
+.matrix thead th { color: var(--muted); font-weight: 500; }
+.matrix .matrix-skill { position: sticky; left: 0; background: var(--card); text-align: left; font-weight: 500; z-index: 1; }
+.matrix-head { display: inline-block; max-width: 140px; overflow: hidden; text-overflow: ellipsis; vertical-align: bottom; }
+.matrix-cell { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 999px; }
+.cell--named { background: var(--good-bg); color: var(--good); }
+.cell--related { background: var(--warn-bg); color: var(--warn); }
+.cell--missing { color: var(--muted); border: 1px dashed var(--border); }
+.provider-report { margin-top: 32px; padding-top: 16px; border-top: 2px solid var(--border); }
+.provider-report__title { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 1.2rem; }
+@media (max-width: 520px) {
+  .matrix-cell__text { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .matrix-cell { padding: 4px; }
+}
+.only-narrow { display: none; }
+.narrow-meta { margin-top: 6px; font-size: 0.85rem; color: var(--muted); }
+.narrow-actions { display: flex; gap: 6px; margin-top: 6px; }
+@media (max-width: 520px) {
+  .hide-narrow { display: none; }
+  .only-narrow { display: inline; }
+  .narrow-meta.only-narrow { display: block; }
+  .matrix-head { max-width: 64px; }
+  .matrix th, .matrix td { padding: 6px 4px; }
+}
+@media (min-width: 521px) { .only-narrow-sr { display: none; } }
+@media (max-width: 520px) { .matrix-key.only-narrow { display: block; overflow-wrap: anywhere; } }
