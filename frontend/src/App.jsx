@@ -1,8 +1,7 @@
 import { Link, NavLink, Route, Routes, useLocation } from 'react-router'
-import { Briefcase, User } from 'lucide-react'
+import { Briefcase, Settings as SettingsIcon, User } from 'lucide-react'
 import Logo from './Logo.jsx'
 import StatusIndicator from './StatusIndicator.jsx'
-import DataFooter from './DataFooter.jsx'
 import ErrorBoundary from './ErrorBoundary.jsx'
 import Announcer from './Announcer.jsx'
 import Home from './pages/Home.jsx'
@@ -13,6 +12,7 @@ import ProviderNewJob from './pages/ProviderNewJob.jsx'
 import ProviderJob from './pages/ProviderJob.jsx'
 import ProviderReport from './pages/ProviderReport.jsx'
 import NotFound from './pages/NotFound.jsx'
+import Settings from './pages/Settings.jsx'
 
 export default function App() {
   const { pathname } = useLocation()
@@ -36,7 +36,12 @@ export default function App() {
               <Briefcase size={16} aria-hidden="true" /> <span>Job Provider</span>
             </NavLink>
           </nav>
-          <StatusIndicator />
+          <div className="topbar__end">
+            <StatusIndicator />
+            <NavLink to="/settings" className="settings-link" aria-label="Settings" title="Settings">
+              <SettingsIcon size={18} aria-hidden="true" />
+            </NavLink>
+          </div>
         </div>
       </header>
       <main className="app">
@@ -50,10 +55,10 @@ export default function App() {
             <Route path="/provider/new" element={<ProviderNewJob />} />
             <Route path="/provider/jobs/:jobId" element={<ProviderJob />} />
             <Route path="/provider/jobs/:jobId/report/:analysisId/:tab?" element={<ProviderReport />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </ErrorBoundary>
-        <DataFooter />
       </main>
     </>
   )

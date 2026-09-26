@@ -470,9 +470,23 @@ textarea:focus-visible, .text-input:focus-visible, select:focus-visible { outlin
 .outcome--cancelled { background: var(--info-bg); color: var(--info); }
 
 /* ---- Your data ---- */
-.data-footer { margin-top: 56px; padding-top: 20px; border-top: 1px solid var(--border); display: grid; gap: 8px; justify-items: start; }
-.data-footer .muted { display: flex; gap: 6px; align-items: flex-start; margin: 0; }
-.data-footer .muted svg { flex-shrink: 0; margin-top: 3px; }
+/* ---- Settings ---- */
+.topbar__end { display: flex; align-items: center; gap: 6px; }
+.settings-link {
+  display: inline-grid; place-items: center; width: 36px; height: 36px; border-radius: var(--radius-sm);
+  color: var(--muted); border: 1px solid transparent;
+}
+.settings-link:hover { color: var(--text); background: var(--surface-2); }
+.settings-link.active { color: var(--accent); background: var(--accent-soft); }
+.settings-done { margin-bottom: 16px; }
+.settings-note { display: flex; gap: 8px; align-items: flex-start; margin: 0 0 16px; color: var(--muted); }
+.settings-note svg { flex-shrink: 0; margin-top: 3px; }
+.danger-zone {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px;
+  padding: 14px 16px; border: 1px solid var(--bad); border-radius: var(--radius-sm); margin-bottom: 4px;
+}
+.danger-zone > div { flex: 1 1 280px; }
+.danger-zone .muted { margin: 4px 0 0; }
 
 /* ---- Fit report: summary first, sections collapsible ---- */
 .summary__top { display: flex; align-items: center; gap: 24px; }
