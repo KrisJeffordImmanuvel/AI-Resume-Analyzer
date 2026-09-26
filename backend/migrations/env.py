@@ -7,7 +7,7 @@ from sqlalchemy import engine_from_config, pool
 
 import models  # noqa: F401  (registers every table on Base.metadata)
 from config import get_settings
-from database import Base
+from database import Base, normalize_url
 
 config = context.config
 target_metadata = Base.metadata
@@ -15,7 +15,10 @@ target_metadata = Base.metadata
 
 def run_migrations_offline() -> None:
     context.configure(
-        url=get_settings().database_url, target_metadata=target_metadata, literal_binds=True, render_as_batch=True
+        url=normalize_url(get_settings().database_url),
+        target_metadata=target_metadata,
+        literal_binds=True,
+        render_as_batch=True,
     )
     with context.begin_transaction():
         context.run_migrations()
@@ -27,7 +30,7 @@ def run_migrations_online() -> None:
         _run(connection)
         return
     engine = engine_from_config(
-        {"sqlalchemy.url": get_settings().database_url}, prefix="sqlalchemy.", poolclass=pool.NullPool
+        {"sqlalchemy.url": normalize_url(get_settings().database_url)}, prefix="sqlalchemy.", poolclass=pool.NullPool
     )
     with engine.connect() as conn:
         _run(conn)

@@ -1,3 +1,8 @@
+import pytest
+
+from tests.conftest import TEST_DATABASE_URL
+
+
 def test_health_without_api_key_uses_fallback(make_client):
     with make_client(api_key="") as client:
         body = client.get("/health").json()
@@ -29,6 +34,7 @@ def test_demo_mode_forces_fallback_even_with_key(make_client):
     assert body["fallback_reason"] == "demo_mode"
 
 
+@pytest.mark.skipif(bool(TEST_DATABASE_URL), reason="checks the SQLite file")
 def test_database_file_is_created_on_startup(make_client, tmp_path):
     with make_client() as client:
         client.get("/health")

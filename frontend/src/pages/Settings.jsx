@@ -73,7 +73,7 @@ export default function Settings() {
           <ShieldCheck size={16} aria-hidden="true" />
           {auth.required ? (
             <span>
-              Your resumes and results are stored on the server this private site runs on, behind its password. With
+              Your resumes and results are stored in this private site&apos;s database, behind its password. With
               AI on, the text is also sent to Google&apos;s Gemini to be analysed.
             </span>
           ) : (

@@ -113,6 +113,15 @@ def test_require_password_refuses_to_start_without_a_strong_one(make_client, mon
         assert client.get("/health").status_code == 200
 
 
+def test_require_password_refuses_to_start_without_a_database(make_client, monkeypatch):
+    client = make_client(password=PASSWORD)
+    monkeypatch.setenv("REQUIRE_PASSWORD", "true")
+    monkeypatch.delenv("DATABASE_URL")
+    with pytest.raises(RuntimeError, match="DATABASE_URL"):
+        with client:
+            pass
+
+
 def test_security_headers(make_client):
     with make_client() as client:
         r = client.get("/health")

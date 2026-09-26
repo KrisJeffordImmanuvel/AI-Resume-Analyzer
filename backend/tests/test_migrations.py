@@ -66,3 +66,12 @@ def test_baseline_is_the_first_migration():
     cfg.set_main_option("script_location", str(MIGRATIONS_DIR))
     base = ScriptDirectory.from_config(cfg).get_base()
     assert base == BASELINE_REVISION
+
+
+def test_hosted_database_addresses_use_psycopg():
+    from database import normalize_url
+
+    assert normalize_url("postgres://u:p@h/db") == "postgresql+psycopg://u:p@h/db"
+    assert normalize_url("postgresql://u:p@h/db?sslmode=require") == "postgresql+psycopg://u:p@h/db?sslmode=require"
+    assert normalize_url("postgresql+psycopg://u:p@h/db") == "postgresql+psycopg://u:p@h/db"
+    assert normalize_url("sqlite:///x.db") == "sqlite:///x.db"
