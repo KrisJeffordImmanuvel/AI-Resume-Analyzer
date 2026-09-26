@@ -14,10 +14,10 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from ai_provider import AIError, make_provider
+from ai_provider import AIError, make_provider, safe_message
 from config import get_settings
 from parsing import normalize_text
-from semantic import EmbedderUnavailable, SentenceTransformerEmbedder, _cosine, best_matches, skill_query
+from semantic import EmbedderUnavailable, SentenceTransformerEmbedder, best_matches, cosine, skill_query
 from skills import find_mentions, group_by_skill
 
 SAMPLES = Path(__file__).resolve().parent.parent / "samples"
@@ -63,10 +63,9 @@ def check_models(settings) -> bool:
         print("  No GOOGLE_API_KEY set.")
         return False
     from google import genai
+    from google.genai import types
 
     from ai_provider import GeminiProvider
-
-    from google.genai import types
 
     print("  Asking Google for the model list (up to 30 seconds)...", flush=True)
     client = genai.Client(api_key=settings.google_api_key, http_options=types.HttpOptions(timeout=30_000))
@@ -79,9 +78,7 @@ def check_models(settings) -> bool:
             and not any(x in m.name for x in ("tts", "image", "audio", "live", "embedding"))
         ]
     except Exception as exc:
-        from ai_provider import _safe_message
-
-        print(f"  FAILED to list models: {_safe_message(exc, settings.google_api_key)}")
+        print(f"  FAILED to list models: {safe_message(exc, settings.google_api_key)}")
         return False
     # Cheaper "flash" models first; they are the practical choices for this app.
     names.sort(key=lambda n: ("flash" not in n, "preview" in n or "exp" in n, n))
@@ -141,8 +138,8 @@ def check_semantic(settings) -> bool:
         print(f"  FAILED: {exc}")
         return False
     print(f"  Model loaded and ran in {time.perf_counter() - start:.1f}s (first run includes the download).")
-    for line, vec in zip(lines, vectors[1:]):
-        sim = _cosine(vectors[0], vec)
+    for line, vec in zip(lines, vectors[1:], strict=True):
+        sim = cosine(vectors[0], vec)
         verdict = "MATCH" if sim >= settings.semantic_threshold else "no match"
         print(f"  {sim:.2f} {verdict:8s} '{query}' vs '{line}'")
     calibrate(embedder, settings.semantic_threshold)

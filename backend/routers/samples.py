@@ -22,4 +22,4 @@ def get_samples() -> SamplesResponse:
     try:
         return SamplesResponse(resume=_read(RESUME), job_description=_read(JOB_DESCRIPTION))
     except OSError:
-        raise HTTPException(404, "The sample files are missing from the samples folder.")
+        raise HTTPException(404, "The sample files are missing from the samples folder.") from None

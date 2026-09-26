@@ -27,7 +27,7 @@ def test_docx_resume_includes_paragraphs_and_tables():
 @pytest.mark.parametrize(
     "data",
     [
-        "Café résumé – Python".encode("utf-8"),
+        "Café résumé – Python".encode(),
         "Café résumé – Python".encode("utf-8-sig"),
         "Café résumé – Python".encode("utf-16"),
         "Café résumé – Python".encode("cp1252"),

@@ -14,14 +14,14 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
-from config import get_settings
 import models  # noqa: F401  (registers tables before init_db creates them)
+from config import get_settings
 from database import check_db, init_db, make_engine, make_session_factory
-from routers import analyses, coaching, data, evidence, jobs, resume_tools, samples
-from schemas import HealthResponse
 from parsing import MAX_UPLOAD_BYTES
 from request_limit import RequestSizeLimit
+from routers import analyses, coaching, data, evidence, jobs, resume_tools, samples
 from routers.jobs import MAX_FILES_PER_UPLOAD
+from schemas import HealthResponse
 
 APP_VERSION = "1.0.0"
 logger = logging.getLogger("resume_analyzer")

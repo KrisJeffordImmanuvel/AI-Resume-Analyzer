@@ -7,8 +7,8 @@ from GitHub's response. A resume language not seen on GitHub is reported as
 
 import re
 from collections import Counter
+from datetime import UTC, datetime, timedelta
 from functools import lru_cache
-from datetime import datetime, timedelta, timezone
 from typing import Protocol
 
 from skills import find_mentions, group_by_skill, skill_index
@@ -142,7 +142,7 @@ def github_check(username: str, resume_text: str, client: GitHubClient, now: dat
     username = (username or "").strip().lstrip("@")
     if not USERNAME.match(username):
         raise GitHubError("That does not look like a GitHub username (letters, numbers and single hyphens).")
-    now = now or datetime.now(timezone.utc)
+    now = now or datetime.now(UTC)
     user = client.user(username)
     repos = [r for r in client.repos(username) if not r.get("fork") and not r.get("archived")]
 
@@ -194,7 +194,7 @@ def github_check(username: str, resume_text: str, client: GitHubClient, now: dat
             }
         )
     claims.sort(key=lambda c: (c["status"] != "seen", -c["repos"], c["skill"].lower()))
-    only_github = [l for l in languages if l["skill"] and l["skill"] not in set(resume_skills)]
+    only_github = [lang for lang in languages if lang["skill"] and lang["skill"] not in set(resume_skills)]
 
     return {
         "username": user.get("login", username),

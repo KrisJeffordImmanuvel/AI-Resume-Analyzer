@@ -11,8 +11,8 @@ from pydantic import BaseModel, Field
 
 from ai_provider import AIError, AIProvider
 from skills import find_mentions
+from text_utils import is_bullet, strip_bullet
 
-_BULLET = re.compile(r"^\s*(?:[-*•·▪◦‣–]|\d+[.)])\s+")
 _NUMBER = re.compile(r"(?<![A-Za-z])[$€£₹]?\d[\d,.]*\s*(?:%|k\b|m\b|x\b|\+)?", re.I)
 _PLACEHOLDER = re.compile(r"\[[^\[\]]{1,30}\]")
 _FIRST_PERSON = re.compile(r"\b(I|me|my|mine)\b")
@@ -99,7 +99,7 @@ _NUMBER_WORD = re.compile(
 )
 
 
-def _metric(text: str) -> str | None:
+def find_metric(text: str) -> str | None:
     """First number that looks like a metric (years such as 2021 do not count;
     written numbers such as "two engineers" do)."""
     for m in _NUMBER.finditer(text):
@@ -109,23 +109,19 @@ def _metric(text: str) -> str | None:
     return word.group(0) if word else None
 
 
-def _strip_bullet(line: str) -> str:
-    return _BULLET.sub("", line, count=1).strip()
-
-
 def extract_bullets(resume_text: str) -> list[str]:
     """Bullet lines as written in the resume (verbatim, including the bullet mark)."""
-    return [line.strip() for line in resume_text.split("\n") if _BULLET.match(line) and len(_strip_bullet(line)) > 3]
+    return [line.strip() for line in resume_text.split("\n") if is_bullet(line) and len(strip_bullet(line)) > 3]
 
 
 def check_bullet(bullet: str) -> dict:
-    body = _strip_bullet(bullet)
+    body = strip_bullet(bullet)
     words = body.split()
     first = words[0].lower().strip(",.;:") if words else ""
     lowered = body.lower()
     issues = []
 
-    metric = _metric(body)
+    metric = find_metric(body)
     quantified = metric is not None
     if not quantified:
         issues.append(
@@ -263,7 +259,7 @@ _PAST = {
 
 
 def rule_based_rewrite(bullet: str) -> dict:
-    body = _strip_bullet(bullet)
+    body = strip_bullet(bullet)
     text = body
     note = []
     lowered = text.lower()
@@ -284,7 +280,7 @@ def rule_based_rewrite(bullet: str) -> dict:
     text = re.sub(r"\s{2,}", " ", text).strip(" ,")
     if text and text[0].islower():
         text = text[0].upper() + text[1:]
-    if _metric(text) is None:
+    if find_metric(text) is None:
         text = text.rstrip(".") + ", [result: e.g. reduced X by N%]."
         note.append("Added a placeholder for a measurable result; replace it with a real number.")
     return {"text": text, "placeholders": _PLACEHOLDER.findall(text), "note": " ".join(note) or "Minor clean-up."}
@@ -331,7 +327,7 @@ def rewrite_bullet(bullet: str, resume_text: str, provider: AIProvider | None, f
     if provider is not None:
         try:
             raw = provider.generate_json(
-                system=REWRITE_SYSTEM, prompt=f"<bullet>\n{_strip_bullet(bullet)}\n</bullet>", schema=AIRewrite
+                system=REWRITE_SYSTEM, prompt=f"<bullet>\n{strip_bullet(bullet)}\n</bullet>", schema=AIRewrite
             )
             variants = []
             for item in raw.get("variants", [])[:3]:

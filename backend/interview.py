@@ -40,8 +40,8 @@ def fallback_questions(result: dict) -> list[dict]:
             {
                 "type": "skill",
                 "skill": m["skill"],
-                "question": f"Your resume mentions {m['skill']}. Walk me through a specific problem you solved with it, "
-                f"what you did yourself, and the result.",
+                "question": f"Your resume mentions {m['skill']}. Walk me through a specific problem you solved "
+                "with it, what you did yourself, and the result.",
                 "grounding": _grounding("resume", m["resume_evidence"][0]),
             }
         )

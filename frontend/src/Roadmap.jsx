@@ -2,28 +2,33 @@ import { useEffect, useState } from 'react'
 import { ExternalLink, Loader2, RefreshCw, Hammer } from 'lucide-react'
 import { errorMessage, getRoadmap } from './api.js'
 import SourceNote from './SourceNote.jsx'
+import { PRIORITY_LABEL } from './Priority.jsx'
 import Working from './Working.jsx'
 
 // Display only: drop a leading bullet from a quoted line (the stored quote stays verbatim).
 const clean = (quote) => quote.replace(/^[-*•·–]\s+/, '')
 
-const PRIORITY_LABEL = { required: 'Required', standard: 'Mentioned', preferred: 'Nice to have' }
 
 export default function Roadmap({ analysisId }) {
   const [state, setState] = useState({ loading: true, data: null, error: null })
 
-  async function load(refresh = false) {
-    setState((s) => ({ ...s, loading: true, error: null }))
-    try {
-      setState({ loading: false, data: await getRoadmap(analysisId, refresh), error: null })
-    } catch (err) {
-      setState({ loading: false, data: null, error: errorMessage(err) })
-    }
-  }
+  const [request, setRequest] = useState({ refresh: false }) // a new object asks again
 
   useEffect(() => {
-    load()
-  }, [analysisId]) // eslint-disable-line react-hooks/exhaustive-deps
+    let alive = true // ignore an answer that arrives after leaving the tab
+    getRoadmap(analysisId, request.refresh).then(
+      (data) => alive && setState({ loading: false, data, error: null }),
+      (err) => alive && setState({ loading: false, data: null, error: errorMessage(err) }),
+    )
+    return () => {
+      alive = false
+    }
+  }, [analysisId, request])
+
+  function load(refresh = false) {
+    setState((s) => ({ ...s, loading: true, error: null }))
+    setRequest({ refresh })
+  }
 
   const { loading, data, error } = state
   return (

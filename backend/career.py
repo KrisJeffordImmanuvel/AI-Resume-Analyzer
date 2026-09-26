@@ -151,7 +151,7 @@ def build_timeline(profile: dict, today: date | None = None) -> dict:
 
     roles = [i for i in items if i["kind"] == "role"]
     gaps = []
-    for prev, nxt in zip(roles, roles[1:]):
+    for prev, nxt in zip(roles, roles[1:], strict=False):  # consecutive pairs
         py, pm = map(int, prev["end"].split("-"))
         ny, nm = map(int, nxt["start"].split("-"))
         gap = _months_between((py, pm), (ny, nm)) - 1

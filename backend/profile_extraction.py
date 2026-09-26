@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from ai_provider import AIError, AIProvider
 from evidence import find_term, value_in, verified_quote
 from skills import find_mentions, group_by_skill
+from text_utils import is_bullet
 
 MAX_SKILLS = 60
 MAX_EXPERIENCE = 20
@@ -140,7 +141,6 @@ _DATE_RANGE = re.compile(
     re.I,
 )
 _DURATION = re.compile(r"\b\d+\s*(?:yrs?|years?|mos?|months?)\b", re.I)
-_BULLET = re.compile(r"^\s*[-*•·▪◦‣–]\s+")
 
 
 def _section_of(line: str) -> str | None:
@@ -153,7 +153,7 @@ def _section_of(line: str) -> str | None:
     return None
 
 
-def _fallback_profile(resume_text: str) -> dict:
+def fallback_profile(resume_text: str) -> dict:
     skills = []
     for name, mentions in group_by_skill(find_mentions(resume_text)).items():
         m = mentions[0]
@@ -177,7 +177,7 @@ def _fallback_profile(resume_text: str) -> dict:
             section, pending = heading, []
             continue
         text = line.strip()
-        if not text or _BULLET.match(line):
+        if not text or is_bullet(line):
             pending = []
             continue
         dates = _DATE_RANGE.search(text)
@@ -232,7 +232,7 @@ def extract_profile(resume_text: str, provider: AIProvider | None, fallback_reas
         "source": "fallback",
         "model": None,
         "fallback_reason": fallback_reason,
-        **_fallback_profile(resume_text),
+        **fallback_profile(resume_text),
         "discarded": 0,
         "notices": notices,
     }

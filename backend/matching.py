@@ -14,6 +14,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from skills import Mention, find_mentions, group_by_skill, skill_index
+from text_utils import is_bullet
 
 SCORE_LABEL = "Application-generated estimate, not an official ATS or hiring decision."
 MAX_QUOTES_PER_SKILL = 3
@@ -37,7 +38,6 @@ _REQUIRED_WORDS = re.compile(
     r"basic qualifications|qualifications|what you(?:'|’)ll need|what we(?:'|’)re looking for|you have)\b",
     re.IGNORECASE,
 )
-_BULLET = re.compile(r"^\s*([-*•·▪◦‣–]|\d+[.)])\s+")
 
 
 @dataclass
@@ -49,7 +49,7 @@ class _LineInfo:
 
 def _is_heading(line: str) -> bool:
     stripped = line.strip()
-    if not stripped or _BULLET.match(line):
+    if not stripped or is_bullet(line):
         return False
     core = stripped.lstrip("#").strip().rstrip(":").strip()
     if not core or len(core.split()) > 6 or re.search(r"[.!?,;]$", core):

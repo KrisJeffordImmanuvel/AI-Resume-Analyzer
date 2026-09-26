@@ -7,8 +7,9 @@ ATS product; the UI labels it as a preview.
 import re
 from collections import Counter
 
-from resume_quality import _metric, extract_bullets
-from skills import _URL_OR_EMAIL, find_mentions, group_by_skill
+from profile_extraction import fallback_profile
+from resume_quality import extract_bullets, find_metric
+from skills import URL_OR_EMAIL, find_mentions, group_by_skill
 
 _EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
 _PHONE_CANDIDATE = re.compile(r"\+?\(?\d[\d\s().-]{7,}\d")
@@ -102,7 +103,7 @@ def parse_preview(resume_text: str) -> dict:
 
 
 def _terms(text: str) -> Counter:
-    masked = _URL_OR_EMAIL.sub(" ", text)
+    masked = URL_OR_EMAIL.sub(" ", text)
     counts: Counter = Counter()
     for m in _WORD.finditer(masked):
         word = m.group(0).lower().strip(".-/")
@@ -169,7 +170,7 @@ def six_second_scan(resume_text: str, jd_text: str, profile: dict) -> dict:
     """Heuristic: what a recruiter likely takes in from the top of page one."""
     lines = [line.strip() for line in resume_text.split("\n") if line.strip()]
     top = lines[:SCAN_LINES]
-    top_text = _URL_OR_EMAIL.sub(" ", "\n".join(top))  # "example.com" is not a headline word
+    top_text = URL_OR_EMAIL.sub(" ", "\n".join(top))  # "example.com" is not a headline word
     jd_title = next((line.strip() for line in jd_text.split("\n") if line.strip()), "")
     title_words = {w.lower() for w in _WORD.findall(jd_title) if w.lower() not in STOPWORDS and len(w) > 2}
     headline = top[1] if len(top) > 1 else (top[0] if top else "")
@@ -180,12 +181,10 @@ def six_second_scan(resume_text: str, jd_text: str, profile: dict) -> dict:
 
     experience = profile.get("experience") or []
     if not experience:  # e.g. AI returned no roles: fall back to the first dated line
-        from profile_extraction import _fallback_profile
-
-        experience = _fallback_profile(resume_text)["experience"]
+        experience = fallback_profile(resume_text)["experience"]
     recent = experience[0]["evidence"]["quote"] if experience else None
     bullets = extract_bullets(resume_text)
-    quantified = [b for b in bullets if _metric(b)]
+    quantified = [b for b in bullets if find_metric(b)]
 
     checks = [
         {

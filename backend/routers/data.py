@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from database import Base
 from models import Analysis, Job
-from routers.analyses import get_db
+from routers.common import get_db
 
 router = APIRouter(prefix="/api/data", tags=["your data"])
 

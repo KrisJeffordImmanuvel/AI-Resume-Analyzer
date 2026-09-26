@@ -1,7 +1,5 @@
 """Job Provider mode: set a job description once, compare many candidates against it."""
 
-from datetime import timezone
-
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Response, UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -11,17 +9,8 @@ from comparison import compare
 from config import Settings, get_settings
 from models import Analysis, Job, JobCandidate
 from parsing import ParseError, clean_jd_text, extract_jd_file_text, extract_resume_text
-from routers.analyses import (
-    Cancelled,
-    _read_limited,
-    _upgrade_legacy,
-    analyze_and_save,
-    cancelled_response,
-    delete_analysis_rows,
-    get_ai_provider,
-    get_db,
-    get_embedder,
-)
+from routers.analyses import Cancelled, analyze_and_save, cancelled_response, delete_analysis_rows
+from routers.common import get_ai_provider, get_db, get_embedder, read_limited, upgrade_legacy, utc
 from schemas import CandidateUploadResponse, JobDetail, JobSummary
 from semantic import Embedder
 
@@ -31,14 +20,10 @@ MAX_FILES_PER_UPLOAD = 10
 MAX_TITLE = 200
 
 
-def _utc(value):
-    return value.replace(tzinfo=timezone.utc) if value.tzinfo is None else value
-
-
 def _summary(job: Job) -> dict:
     return {
         "id": job.id,
-        "created_at": _utc(job.created_at),
+        "created_at": utc(job.created_at),
         "title": job.title,
         "jd_source": job.jd_source,
         "jd_filename": job.jd_filename,
@@ -51,8 +36,8 @@ def _detail(job: Job) -> JobDetail:
         {
             "analysis_id": c.analysis_id,
             "filename": c.analysis.resume_filename,
-            "created_at": _utc(c.created_at),
-            "result": _upgrade_legacy(c.analysis.result),
+            "created_at": utc(c.created_at),
+            "result": upgrade_legacy(c.analysis.result),
         }
         for c in job.candidates
     ]
@@ -84,7 +69,7 @@ async def create_job(
         raise HTTPException(422, "Provide the job description either as a .txt file or as pasted text (exactly one).")
     try:
         text = (
-            extract_jd_file_text(jd_file.filename, await _read_limited(jd_file)) if has_file else clean_jd_text(jd_text)
+            extract_jd_file_text(jd_file.filename, await read_limited(jd_file)) if has_file else clean_jd_text(jd_text)
         )
     except ParseError as exc:
         raise HTTPException(exc.status, exc.message) from exc
@@ -129,7 +114,7 @@ async def add_candidates(
     for upload in resumes:
         name = upload.filename or "resume"
         try:
-            text = extract_resume_text(name, await _read_limited(upload))
+            text = extract_resume_text(name, await read_limited(upload))
         except ParseError as exc:
             outcomes.append({"filename": name, "status": "error", "message": exc.message})
             continue

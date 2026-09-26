@@ -21,7 +21,7 @@ _RIGHT = r"(?![A-Za-z0-9_])"
 # "github.com/jane" is a link, not proof of GitHub experience.
 # Bare domains count only with a path (site.com/me) or as a known profile host,
 # so tech names like "ASP.NET" are not mistaken for links.
-_URL_OR_EMAIL = re.compile(
+URL_OR_EMAIL = re.compile(
     r"(?:https?://|www\.)\S+"
     r"|\S+@\S+\.\S+"
     r"|\b[\w-]+(?:\.[\w-]+)*\.(?:com|io|dev|org|net|in|ai|me)/\S*"
@@ -117,7 +117,7 @@ def find_mentions(text: str) -> list[Mention]:
     # Longer matches claim their span first: "React Native" beats "React",
     # "SQL Server" beats "SQL".
     candidates.sort(key=lambda c: (-(c[1] - c[0]), c[0]))
-    taken: list[tuple[int, int]] = [m.span() for m in _URL_OR_EMAIL.finditer(text)]
+    taken: list[tuple[int, int]] = [m.span() for m in URL_OR_EMAIL.finditer(text)]
     accepted = []
     for start, end, skill_name in candidates:
         if any(start < t_end and end > t_start for t_start, t_end in taken):

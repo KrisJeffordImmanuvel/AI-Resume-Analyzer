@@ -1,4 +1,4 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pytest
@@ -12,7 +12,7 @@ from tests.conftest import FakeGitHub, FakeProvider
 
 SAMPLES = Path(__file__).resolve().parents[2] / "samples"
 RESUME = normalize_text((SAMPLES / "sample_resume.txt").read_text(encoding="utf-8"))
-NOW = datetime(2026, 9, 24, tzinfo=timezone.utc)
+NOW = datetime(2026, 9, 24, tzinfo=UTC)
 TODAY = date(2026, 9, 24)
 
 REPOS = [
@@ -76,7 +76,7 @@ def test_github_check_uses_only_public_non_fork_repos_and_marks_evidence_source(
         "via": "topics/description",
     }
     assert {c["skill"] for c in out["resume_claims"] if c["status"] == "not_seen"} >= {"Django", "Redis"}
-    assert [l["language"] for l in out["not_on_resume"]] == ["HCL"]
+    assert [lang["language"] for lang in out["not_on_resume"]] == ["HCL"]
     assert "not mean untrue" in out["label"]
 
 

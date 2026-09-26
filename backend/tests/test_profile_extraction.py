@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from ai_provider import AIError
-from profile_extraction import AIResumeProfile, SYSTEM_PROMPT, extract_profile
+from profile_extraction import SYSTEM_PROMPT, AIResumeProfile, extract_profile
 from tests.conftest import FakeProvider
 
 RESUME = (Path(__file__).resolve().parents[2] / "samples" / "sample_resume.txt").read_text(encoding="utf-8")

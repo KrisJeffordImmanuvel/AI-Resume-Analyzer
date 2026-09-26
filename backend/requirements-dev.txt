@@ -1,0 +1,3 @@
+# Tools for working on the code (not needed to run the app). setup.ps1 installs these too.
+-r requirements.txt
+ruff==0.16.9  # linter and formatter: ruff check . / ruff format .
