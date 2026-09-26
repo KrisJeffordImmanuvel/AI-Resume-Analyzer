@@ -14,6 +14,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
+import auth
 from config import get_settings
 from database import check_db, init_db, make_engine, make_session_factory
 from parsing import MAX_UPLOAD_BYTES
@@ -29,6 +30,7 @@ logger = logging.getLogger("resume_analyzer")
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = get_settings()
+    auth.check_password_settings(settings)
     engine = make_engine(settings.database_url)
     init_db(engine)
     app.state.engine = engine
@@ -43,10 +45,14 @@ app = FastAPI(title="Truescope", version=APP_VERSION, lifespan=lifespan)
 
 # 10 resumes of up to 5 MB in one Job Provider upload, plus room for the form itself.
 MAX_REQUEST_BYTES = MAX_FILES_PER_UPLOAD * MAX_UPLOAD_BYTES + 1024 * 1024
+# The last one added runs first: CORS, then security headers, then sign-in, then the size limit.
 app.add_middleware(RequestSizeLimit, max_bytes=MAX_REQUEST_BYTES)  # added first, so CORS wraps its replies
+app.add_middleware(auth.RequireSignIn)
+app.add_middleware(auth.SecurityHeaders)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_settings().cors_origins,
+    allow_credentials=True,  # the sign-in cookie, when the page runs on the dev server (port 5173)
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -66,6 +72,7 @@ async def unexpected_error(request: Request, exc: Exception) -> JSONResponse:
     )
 
 
+app.include_router(auth.router)
 app.include_router(analyses.router)
 app.include_router(coaching.router)
 app.include_router(resume_tools.router)

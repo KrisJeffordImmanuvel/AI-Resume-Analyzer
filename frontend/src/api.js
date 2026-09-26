@@ -6,7 +6,32 @@ export const API_BASE_URL = import.meta.env.DEV ? import.meta.env.VITE_API_BASE_
 
 // The server stops waiting for AI after AI_TIMEOUT_SECONDS (at most 240), so 5 minutes
 // leaves room; the first run with semantic matching on also downloads its model.
-export const api = axios.create({ baseURL: API_BASE_URL, timeout: 300000 })
+// withCredentials: the sign-in cookie also goes along from the dev server (published sites only).
+export const api = axios.create({ baseURL: API_BASE_URL, timeout: 300000, withCredentials: true })
+
+/** Fired when the server says "sign in first" (the session ended), so the app shows the sign-in page. */
+export const SIGNED_OUT_EVENT = 'truescope:signed-out'
+
+api.interceptors.response.use(undefined, (err) => {
+  const url = err?.config?.url || ''
+  if (err?.response?.status === 401 && !url.startsWith('/api/auth/')) window.dispatchEvent(new Event(SIGNED_OUT_EVENT))
+  return Promise.reject(err)
+})
+
+export async function getAuthStatus() {
+  const { data } = await api.get('/api/auth/status', { timeout: 10000 })
+  return data
+}
+
+export async function signIn(password) {
+  const { data } = await api.post('/api/auth/login', { password })
+  return data
+}
+
+export async function signOut() {
+  const { data } = await api.post('/api/auth/logout')
+  return data
+}
 
 /** True when the request was stopped with Cancel (an AbortController signal). */
 export const isCancelled = (err) => axios.isCancel(err) || err?.code === 'ERR_CANCELED'

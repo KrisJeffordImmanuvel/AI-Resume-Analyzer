@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Database, ShieldCheck, Trash2 } from 'lucide-react'
+import { Database, LogOut, ShieldCheck, Trash2 } from 'lucide-react'
 import { deleteAllData, errorMessage } from '../api.js'
 import PageHeader from '../PageHeader.jsx'
+import { useAuth } from '../auth.js'
 
 const DONE_KEY = 'data-deleted'
 const plural = (n, one, many) => `${n} ${n === 1 ? one : many}`
@@ -21,6 +22,16 @@ export default function Settings() {
   const [done] = useState(takeDoneFlag)
   const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
+  const auth = useAuth()
+
+  async function logOut() {
+    setError(null)
+    try {
+      await auth.signOut()
+    } catch (e) {
+      setError(errorMessage(e))
+    }
+  }
 
   async function removeAll() {
     const typed = window.prompt(
@@ -60,10 +71,17 @@ export default function Settings() {
         <h2 id="data-title"><Database size={18} aria-hidden="true" /> Your data</h2>
         <p className="settings-note">
           <ShieldCheck size={16} aria-hidden="true" />
-          <span>
-            Your resumes and results are stored only on this computer (backend\app.db). With AI on, the text is also
-            sent to Google&apos;s Gemini to be analysed.
-          </span>
+          {auth.required ? (
+            <span>
+              Your resumes and results are stored on the server this private site runs on, behind its password. With
+              AI on, the text is also sent to Google&apos;s Gemini to be analysed.
+            </span>
+          ) : (
+            <span>
+              Your resumes and results are stored only on this computer (backend\app.db). With AI on, the text is
+              also sent to Google&apos;s Gemini to be analysed.
+            </span>
+          )}
         </p>
         <div className="danger-zone">
           <div>
@@ -79,6 +97,17 @@ export default function Settings() {
         </div>
         {error && <p className="form__error" role="alert">{error}</p>}
       </section>
+      {auth.required && (
+        <section className="card" aria-labelledby="session-title">
+          <h2 id="session-title"><LogOut size={18} aria-hidden="true" /> Sign out</h2>
+          <div className="settings-row">
+            <p className="muted">Signs this browser out of the private site. You need the password to come back in.</p>
+            <button type="button" className="icon-button" onClick={logOut}>
+              <LogOut size={15} aria-hidden="true" /> Sign out
+            </button>
+          </div>
+        </section>
+      )}
     </>
   )
 }
