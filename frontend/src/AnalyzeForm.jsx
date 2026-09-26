@@ -105,10 +105,7 @@ export default function AnalyzeForm({ onResult }) {
   return (
     <form className="card form" onSubmit={handleSubmit}>
       <div className="form__head">
-        <div>
-          <h2>Analyze a resume</h2>
-          <p className="muted">Compare a resume with a job description. Everything shown comes from your two documents.</p>
-        </div>
+        <h2>Your documents</h2>
         <button type="button" className="secondary" onClick={trySample} disabled={busy}>
           <FlaskConical size={16} aria-hidden="true" /> Try with sample data
         </button>

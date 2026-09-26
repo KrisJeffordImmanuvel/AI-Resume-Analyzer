@@ -143,8 +143,21 @@ Then open **http://localhost:5173**.
 
 ## Using the app
 
-The switch at the top chooses **Job Seeker** or **Job Provider** mode (the app
-remembers your choice).
+The app has a separate page for each step, each with its own address, so the
+browser's **Back** and **Forward** buttons work and you can bookmark a page. The
+start page asks whether you are looking for a job or hiring; **Job Seeker** and
+**Job Provider** in the top bar switch at any time, and the logo returns to the
+start page.
+
+| Page | Address |
+|---|---|
+| Start page: choose Job Seeker or Job Provider | `http://localhost:8000/` |
+| Job Seeker: upload a resume and job description | `/seeker` |
+| Job Seeker: the analysis (one address per tab) | `/seeker/analysis/12`, `/seeker/analysis/12/roadmap`, … |
+| Job Provider: your jobs | `/provider` |
+| Job Provider: create a job | `/provider/new` |
+| Job Provider: one job (candidates, ranking, matrix) | `/provider/jobs/3` |
+| Job Provider: one candidate's report | `/provider/jobs/3/report/7` |
 
 ### Job Seeker mode
 
@@ -157,13 +170,13 @@ and job description straight away.
 3. Click **Analyze**. While it works you see what it is doing and for how
    long; **Cancel** stops it (nothing is saved). With AI on it usually takes
    under 30 seconds, and never longer than `AI_TIMEOUT_SECONDS` (90 by
-   default): after that the app uses its built-in rules instead. The page
-   scrolls to the results when they are ready.
+   default): after that the app uses its built-in rules instead. The analysis
+   page opens when it is ready; **New analysis** takes you back.
 
-Past analyses appear under **Recent analyses**: **Open** shows one again;
-the bin icon deletes it permanently.
+Past analyses appear under **Recent analyses** on the upload page: **Open**
+shows one again; the bin icon deletes it permanently.
 
-The results have seven tabs:
+The analysis page has seven tabs:
 
 | Tab | What it shows |
 |---|---|
@@ -177,12 +190,13 @@ The results have seven tabs:
 
 ### Job Provider mode
 
-1. Click **Job Provider**.
-2. Create a job: paste the job description (or upload a `.txt`) and optionally
-   give it a title. Saved jobs can be picked again from the dropdown.
-   **Delete job** removes the selected job and permanently deletes its
-   candidates' resumes and reports (you are asked to confirm first).
-3. Under **Add candidates**, drag in (or choose) up to 10 resumes at a time and click
+1. Click **Job Provider**. **Your jobs** lists the saved jobs; click one to
+   open it.
+2. **New job**: paste the job description (or upload a `.txt`) and optionally
+   give it a title. **Create job** opens the new job's page. **Delete job**
+   (on a job's page) removes it and permanently deletes its candidates'
+   resumes and reports (you are asked to confirm first).
+3. On the job's page, under **Add candidates**, drag in (or choose) up to 10 resumes at a time and click
    **Add candidates**. Each resume is analysed with exactly the same engine as
    Job Seeker mode. Resumes are analysed one at a time ("Analysing resume 2
    of 5") and appear in the ranking as each finishes; **Cancel the rest**
@@ -190,20 +204,24 @@ The results have seven tabs:
    be read, or a resume already in the comparison, is reported without
    stopping the others.
 4. **Ranking**: candidates by fit score, with the required skills each one is
-   missing. **Report** opens that candidate's full seven-tab report; the bin icon
-   removes them from the comparison.
+   missing. **Report** opens that candidate's full seven-tab report on its own
+   page (**Back to the ranking** returns); the bin icon removes them from the
+   comparison.
 5. **Skill matrix**: each job skill against each candidate: ✓ Named (full
    credit), − Related (half credit), ✗ Missing. Click a Named or Related cell
    (or press Enter on it) to see the resume line behind it.
-6. **Blind review** hides file names and shows Candidate A, B, C… instead.
+6. **Blind review** hides file names and shows Candidate A, B, C… instead; it
+   stays on when you open a candidate's report.
 
 ### Keyboard and screen readers
 
 - Everything works with the keyboard. **Tab** moves between controls (with a
-  visible focus ring); in a row of tabs (mode, report sections, Paste/Upload),
+  visible focus ring); in a row of tabs (report sections, Paste/Upload),
   **Left/Right**, **Home** and **End** switch tabs.
 - Screen readers announce when an analysis starts and finishes (with the
   score), and when candidates are added in Job Provider mode.
+- Opening a page moves focus to its title, so screen readers read the new
+  page like any other page load; the browser tab shows the page's name.
 
 ### Try it with the sample files
 
@@ -341,7 +359,7 @@ database tables are added automatically.
 ```powershell
 cd $HOME\ai-resume-analyzer-app\backend
 .\venv\Scripts\Activate.ps1
-pytest               # 245 tests
+pytest               # 246 tests
 ruff check .         # finds likely bugs and unused imports
 ruff format .        # formats the Python code
 cd ..\frontend
@@ -414,7 +432,8 @@ backend\
   check_ai.py           manual check of Gemini and the semantic model
   tests\                pytest suite
   ruff.toml             Ruff settings; requirements-dev.txt adds Ruff
-frontend\src\           React + Vite user interface (eslint.config.js: lint settings)
+frontend\src\           React + Vite user interface; pages\ holds one file per page
+                        (React Router), eslint.config.js the lint settings
 .github\workflows\      CI: tests, linters and build on every pull request
 samples\                fictional resumes and a job description
 setup.ps1               one-time setup (safe to run again)
