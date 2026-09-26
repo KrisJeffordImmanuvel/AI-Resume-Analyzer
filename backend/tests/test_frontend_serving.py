@@ -75,7 +75,13 @@ def test_missing_build_shows_friendly_page(make_client, tmp_path, monkeypatch):
 def test_every_app_page_address_serves_the_app(make_client, dist):
     # The pages (React Router) live in the browser; the server answers each address with the app.
     with make_client() as client:
-        for path in ["/seeker", "/seeker/analysis/12/roadmap", "/provider/new", "/provider/jobs/3/report/7/career"]:
+        for path in [
+            "/seeker",
+            "/seeker/analysis/12/roadmap",
+            "/provider/new",
+            "/provider/jobs/3/report/7/career",
+            "/settings",
+        ]:
             r = client.get(path)
             assert r.status_code == 200, path
             assert "id=root" in r.text, path

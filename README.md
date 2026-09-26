@@ -161,6 +161,7 @@ start page.
 | Job Provider: create a job | `/provider/new` |
 | Job Provider: one job (candidates, ranking, matrix) | `/provider/jobs/3` |
 | Job Provider: one candidate's report | `/provider/jobs/3/report/7` |
+| Settings (the gear at the top right): your data, Delete all my data | `/settings` |
 
 ### Job Seeker mode
 
@@ -342,7 +343,7 @@ database tables are added automatically.
 - Everything is stored locally in `backend\app.db` on your computer. Delete an
   analysis from **Recent analyses** to remove its resume text and everything
   generated from it, use **Delete job** in Job Provider mode to remove a job
-  and its candidates, or click **Delete all my data** at the bottom of the page
+  and its candidates, or open **Settings** (the gear at the top right) and click **Delete all my data**
   (type `DELETE` to confirm) to remove everything at once. The database file is
   then compacted, so deleted text does not linger inside it.
 - Uploads are limited to 5 MB per resume and 51 MB per request; anything larger
