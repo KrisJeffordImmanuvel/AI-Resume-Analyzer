@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import Roadmap from './Roadmap.jsx'
 import Interview from './Interview.jsx'
 import ResumeQuality from './ResumeQuality.jsx'
@@ -19,11 +18,13 @@ const TABS = [
   ['evidence', 'Evidence'],
 ]
 
-export default function AnalysisResults({ result }) {
-  const [tab, setTab] = useState('report')
+export const TAB_IDS = TABS.map(([id]) => id)
+
+/** The seven report tabs. The page owns the selected tab (it is part of the web address). */
+export default function AnalysisResults({ result, tab, onTabChange }) {
   return (
     <div className="results">
-      <TabList id="report" label="Report sections" className="tabs tabs--results" tabs={TABS} value={tab} onChange={setTab} />
+      <TabList id="report" label="Report sections" className="tabs tabs--results" tabs={TABS} value={tab} onChange={onTabChange} />
       <TabPanel id="report" value={tab}>
         {/* key={tab}: switching tabs clears an error shown by the previous tab */}
         <ErrorBoundary key={tab}>
