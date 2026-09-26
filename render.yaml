@@ -1,20 +1,21 @@
-# Render Blueprint: publishes Truescope as a private website (one password).
+# Render Blueprint: publishes Truescope as a private website (one password), on the free plan.
+# Your data is kept in a free Neon Postgres database (DATABASE_URL), because a free Render
+# service has no disk and forgets its files whenever it sleeps or updates.
 # In Render: New > Blueprint, pick this repository. See README, "Publish on Render".
 services:
   - type: web
     name: truescope
     runtime: docker
-    plan: starter # a disk (to keep your data) needs a paid plan
+    plan: free # sleeps after about 15 minutes without visitors; the next visit wakes it (about 1 minute)
     branch: main
     autoDeploy: true
     healthCheckPath: /health
-    disk:
-      name: truescope-data
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       # The password for the site. You type it in Render when you create the service.
       - key: APP_PASSWORD
+        sync: false
+      # Your Neon database address (starts with postgresql://). You paste it in Render.
+      - key: DATABASE_URL
         sync: false
       # Refuse to start without a strong APP_PASSWORD (12+ characters).
       - key: REQUIRE_PASSWORD
@@ -27,5 +28,3 @@ services:
         sync: false
       - key: GEMINI_FALLBACK_MODELS
         sync: false
-      - key: DATABASE_URL
-        value: sqlite:////var/data/app.db

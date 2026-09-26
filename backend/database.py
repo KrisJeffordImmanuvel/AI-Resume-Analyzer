@@ -13,9 +13,20 @@ class Base(DeclarativeBase):
     """Declarative base for all ORM models (added in later phases)."""
 
 
+def normalize_url(database_url: str) -> str:
+    """Hosted databases (Neon, Render) give postgres:// or postgresql:// addresses; use the psycopg driver."""
+    for prefix in ("postgres://", "postgresql://"):
+        if database_url.startswith(prefix):
+            return "postgresql+psycopg://" + database_url[len(prefix) :]
+    return database_url
+
+
 def make_engine(database_url: str) -> Engine:
-    connect_args = {"check_same_thread": False} if database_url.startswith("sqlite") else {}
-    return create_engine(database_url, connect_args=connect_args)
+    database_url = normalize_url(database_url)
+    if database_url.startswith("sqlite"):
+        return create_engine(database_url, connect_args={"check_same_thread": False})
+    # A hosted database may close idle connections (Neon sleeps after a few minutes): test each before use.
+    return create_engine(database_url, pool_pre_ping=True)
 
 
 MIGRATIONS_DIR = Path(__file__).resolve().parent / "migrations"

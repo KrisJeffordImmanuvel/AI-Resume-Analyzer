@@ -283,7 +283,7 @@ the app starts.
 | `SEMANTIC_MODEL` | `sentence-transformers/all-MiniLM-L6-v2` | Embedding model for semantic matching |
 | `SEMANTIC_THRESHOLD` | `0.6` | Minimum similarity (0–1) for a semantic match |
 | `GITHUB_TOKEN` | *(blank)* | Optional token with no scopes; raises the GitHub check's limit from 60 to 5,000 requests per hour |
-| `DATABASE_URL` | `backend\app.db` | Where analyses are stored (SQLite) |
+| `DATABASE_URL` | `backend\app.db` | Where analyses are stored: SQLite on your PC, or a Postgres address (Neon) on the website |
 | `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Web addresses allowed to call the backend (development mode only) |
 | `APP_PASSWORD` | *(blank)* | Website only: the password for the whole app. Blank means no sign-in (normal on your PC) |
 | `SESSION_SECRET` | *(blank)* | Website only: signs the sign-in cookie; Render generates it |
@@ -320,15 +320,25 @@ database tables are added automatically.
 ## Publish on Render (private website)
 
 You can also put Truescope on the internet as **your own private website**,
-protected by one password, and use it from any browser (phone included). It
-runs on [Render](https://render.com); the project already contains the files
-Render needs (`render.yaml` and `Dockerfile`). Running it on your PC stays
-exactly as before, with no password.
+protected by one password, and use it from any browser (phone included), for
+**free**. Running it on your PC stays exactly as before, with no password.
 
-**Cost:** a disk (so your data survives restarts and updates) needs a paid
-plan. With the Starter plan and a 1 GB disk that is about US$7.25 a month at the
-time of writing; check [render.com/pricing](https://render.com/pricing). Render
-bills by the second, so deleting the service stops the charges.
+It uses two free services:
+
+- [Render](https://render.com) runs the app. The project already has the files
+  Render needs (`render.yaml` and `Dockerfile`).
+- [Neon](https://neon.tech) keeps your data in a Postgres database. A free
+  Render service has no disk and forgets its files whenever it sleeps or
+  updates, so the data lives in Neon instead.
+
+**Free-plan limits** (at the time of writing; check
+[render.com/pricing](https://render.com/pricing) and
+[neon.tech/pricing](https://neon.tech/pricing)):
+
+- The site sleeps after about 15 minutes without visitors. The next visit
+  wakes it, which takes about a minute.
+- Neon's free plan stores up to 0.5 GB, which is thousands of analyses.
+- Neither service asks for a payment card for the free plan.
 
 ### 1. Make a strong password
 
@@ -343,13 +353,25 @@ $bytes = [byte[]]::new(15)
 This prints a random 20-character password. Save it in your password manager.
 It must be at least 12 characters, or the site refuses to start.
 
-### 2. Create the site on Render
+### 2. Create the free database on Neon
 
-1. Sign up at [render.com](https://render.com) and connect your GitHub account.
+1. Sign up at [neon.tech](https://neon.tech) (you can use your GitHub account).
+2. Create a project: name it `truescope`, and for the region choose
+   **AWS US West 2 (Oregon)**, the same area as the Render site, so it is fast.
+3. On the project dashboard, click **Connect**. Turn **Connection pooling**
+   off, then copy the connection string. It looks like
+   `postgresql://neondb_owner:...@ep-....neon.tech/neondb?sslmode=require`.
+   Keep it private: it opens your database.
+
+### 3. Create the site on Render
+
+1. Sign up at [render.com](https://render.com) with your GitHub account, and
+   allow it to see this repository.
 2. Click **New** > **Blueprint**, and pick this repository. Render reads
-   `render.yaml` and shows one web service, **truescope**, with a disk.
+   `render.yaml` and shows one free web service, **truescope**.
 3. Fill in the values it asks for:
    - `APP_PASSWORD`: the password from step 1.
+   - `DATABASE_URL`: the Neon connection string from step 2.
    - `GOOGLE_API_KEY`: your Gemini key, or leave it blank to use only the
      built-in rules.
    - `GEMINI_FALLBACK_MODELS`: optional, can stay blank.
@@ -360,18 +382,21 @@ It must be at least 12 characters, or the site refuses to start.
 5. Open the address Render shows (like `https://truescope-xxxx.onrender.com`)
    and sign in with your password.
 
+If the build log ends with an error about `APP_PASSWORD` or `DATABASE_URL`,
+open the service, then **Environment**, fix that value, and save.
+
 ### Everyday use
 
 - **Updates:** every change merged into `main` is published automatically.
-  Your data on the disk is kept.
+  Your data in Neon is kept.
 - **Sign out:** open **Settings** (the gear) and click **Sign out**. You stay
   signed in on a browser for 30 days otherwise.
 - **Change the password:** in Render, open the service, then **Environment**,
   edit `APP_PASSWORD` and save. The site restarts and every browser is signed
   out.
 - **Delete your data:** **Settings** > **Delete all my data**, as on your PC.
-  To stop the site and its charges, delete the service in Render (this also
-  deletes its disk and your data).
+  To remove the site completely, delete the service in Render and the project
+  in Neon.
 
 ### What protects the site
 
@@ -381,7 +406,8 @@ It must be at least 12 characters, or the site refuses to start.
   15 minutes, so the password cannot be guessed quickly.
 - The sign-in cookie cannot be read by page scripts, is only sent over https,
   and is not sent by other websites.
-- Your Gemini key and password live only in Render's settings, never in git.
+- Your password, Gemini key and database address live only in Render's
+  settings, never in git.
 - The optional semantic matching (`SEMANTIC_MATCHING`) is not included on the
   website, to keep it small; everything else works the same.
 
@@ -413,8 +439,8 @@ It must be at least 12 characters, or the site refuses to start.
 ## Privacy and your data
 
 - On your PC, everything is stored locally in `backend\app.db`. (On the
-  [private website](#publish-on-render-private-website), it is stored on the
-  site's Render disk, behind your password.) Delete an
+  [private website](#publish-on-render-private-website), it is stored in
+  your Neon database, and the site is behind your password.) Delete an
   analysis from **Recent analyses** to remove its resume text and everything
   generated from it, use **Delete job** in Job Provider mode to remove a job
   and its candidates, or open **Settings** (the gear at the top right) and click **Delete all my data**

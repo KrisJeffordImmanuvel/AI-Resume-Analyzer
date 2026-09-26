@@ -27,11 +27,9 @@ COPY backend/ ./
 COPY samples/ /app/samples/
 COPY --from=frontend /app/frontend/dist /app/frontend/dist
 
-# The database lives on the service's disk (render.yaml mounts it at /var/data).
+# DATABASE_URL (your Neon database) is set in Render; see render.yaml.
 ENV FRONTEND_DIST=/app/frontend/dist \
-    DATABASE_URL=sqlite:////var/data/app.db \
     SEMANTIC_MATCHING=false
-RUN mkdir -p /var/data
 
 EXPOSE 8000
 # Render sets PORT. --proxy-headers: trust Render's proxy for https and the visitor's address.

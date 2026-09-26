@@ -1,5 +1,22 @@
+import os
+
 import pytest
 from fastapi.testclient import TestClient
+
+# Set TEST_DATABASE_URL (a throwaway Postgres database) to run the tests against Postgres instead of SQLite.
+TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL", "").strip()
+
+
+def _empty_database(url: str) -> None:
+    from sqlalchemy import MetaData
+
+    from database import make_engine
+
+    engine = make_engine(url)
+    metadata = MetaData()
+    metadata.reflect(engine)
+    metadata.drop_all(engine)
+    engine.dispose()
 
 
 class FakeProvider:
@@ -90,7 +107,11 @@ def make_client(tmp_path, monkeypatch):
     def _make(
         api_key: str = "", demo_mode: str = "false", provider=None, embedder=None, github=None, password: str = ""
     ) -> TestClient:
-        monkeypatch.setenv("DATABASE_URL", f"sqlite:///{(tmp_path / 'test.db').as_posix()}")
+        if TEST_DATABASE_URL:
+            _empty_database(TEST_DATABASE_URL)
+            monkeypatch.setenv("DATABASE_URL", TEST_DATABASE_URL)
+        else:
+            monkeypatch.setenv("DATABASE_URL", f"sqlite:///{(tmp_path / 'test.db').as_posix()}")
         monkeypatch.setenv("DEMO_MODE", demo_mode)
         monkeypatch.setenv("SEMANTIC_MATCHING", "false")
         monkeypatch.delenv("GEMINI_MODEL", raising=False)

@@ -10,6 +10,7 @@ import hashlib
 import hmac
 import json
 import logging
+import os
 import secrets
 import threading
 import time
@@ -62,11 +63,16 @@ def password_matches(given: str, settings: Settings) -> bool:
 
 
 def check_password_settings(settings: Settings) -> None:
-    """Called at startup. With REQUIRE_PASSWORD on (the website), refuse to run unprotected."""
+    """Called at startup. With REQUIRE_PASSWORD on (the website), refuse to run unprotected or without a database."""
     if settings.require_password and len(settings.app_password) < MIN_PASSWORD_LENGTH:
         raise RuntimeError(
             f"REQUIRE_PASSWORD is on, so APP_PASSWORD must be set to at least {MIN_PASSWORD_LENGTH} "
             "characters. The app will not start without it (see README, Publish on Render)."
+        )
+    if settings.require_password and not os.getenv("DATABASE_URL", "").strip():
+        raise RuntimeError(
+            "REQUIRE_PASSWORD is on, so DATABASE_URL must be set (your Neon database address). Without it "
+            "the website would keep data in a file that is lost at every restart (see README, Publish on Render)."
         )
     if settings.password_required and not settings.session_secret:
         logger.warning("APP_PASSWORD is set but SESSION_SECRET is not: every restart signs you out.")
