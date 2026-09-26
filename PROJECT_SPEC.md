@@ -1,4 +1,6 @@
-# AI Resume & Career Intelligence Platform — Project Spec
+# Truescope — Project Spec
+
+> Truescope was first called "AI Resume & Career Intelligence Platform".
 
 > Source of truth: the target README for this repository. This spec restates it
 > verbatim where possible; anything below the "Derived requirements" heading is

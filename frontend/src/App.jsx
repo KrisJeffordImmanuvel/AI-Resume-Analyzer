@@ -21,12 +21,12 @@ export default function App() {
     <>
       <header className="topbar">
         <div className="topbar__inner">
-          <Link to="/" className="brand" aria-label="AI Resume & Career Intelligence Platform, start page">
+          <Link to="/" className="brand" aria-label="Truescope, start page">
             <span className="brand__mark" aria-hidden="true">
               <ScanSearch size={20} />
             </span>
             <span className="brand__name">
-              AI Resume &amp; Career Intelligence <span className="brand__suffix">Platform</span>
+              Truescope <span className="brand__suffix">Resume &amp; career intelligence</span>
             </span>
           </Link>
           <nav className="topnav" aria-label="Main">

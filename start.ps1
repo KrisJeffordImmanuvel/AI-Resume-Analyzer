@@ -1,4 +1,4 @@
-# Starts the AI Resume & Career Intelligence Platform at http://localhost:8000.
+# Starts Truescope at http://localhost:8000.
 # Usage (PowerShell, in the project folder):  .\start.ps1
 # Keep this window open while you use the app. Press Ctrl+C here to stop it.
 # Options:  -Port 8001   use another port     -NoBrowser   don't open the browser
@@ -77,7 +77,7 @@ if (-not $NoBrowser) {
 
 # 4. Run the server in this window.
 Write-Host ''
-Write-Host "Starting the app at $url  (press Ctrl+C to stop)" -ForegroundColor Green
+Write-Host "Starting Truescope at $url  (press Ctrl+C to stop)" -ForegroundColor Green
 Write-Host ''
 Push-Location $backend
 try {

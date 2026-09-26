@@ -39,7 +39,7 @@ async def lifespan(app: FastAPI):
         engine.dispose()
 
 
-app = FastAPI(title="AI Resume & Career Intelligence Platform", version=APP_VERSION, lifespan=lifespan)
+app = FastAPI(title="Truescope", version=APP_VERSION, lifespan=lifespan)
 
 # 10 resumes of up to 5 MB in one Job Provider upload, plus room for the form itself.
 MAX_REQUEST_BYTES = MAX_FILES_PER_UPLOAD * MAX_UPLOAD_BYTES + 1024 * 1024

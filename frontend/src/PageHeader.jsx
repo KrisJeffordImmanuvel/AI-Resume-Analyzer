@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react'
 import { Link } from 'react-router'
 import { ArrowLeft } from 'lucide-react'
 
-const APP_NAME = 'AI Resume & Career Intelligence'
+const APP_NAME = 'Truescope'
 
 /**
  * The top of every page: an optional back link, the page title (h1) and a short line under it.

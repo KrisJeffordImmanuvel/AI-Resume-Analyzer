@@ -85,9 +85,8 @@ button, input, select, textarea { font: inherit; }
   background: var(--accent); color: var(--accent-text);
 }
 .brand__name { font-size: 1.05rem; font-weight: 700; letter-spacing: -0.01em; }
-.brand__suffix { color: var(--muted); font-weight: 500; }
+.brand__suffix { color: var(--muted); font-weight: 500; font-size: 0.9rem; margin-left: 4px; }
 @media (max-width: 520px) {
-  .brand__suffix { display: none; }
   .brand__name { font-size: 0.95rem; }
 }
 
@@ -525,16 +524,23 @@ a.primary, a.secondary { text-decoration: none; }
 }
 .topnav__link:hover { color: var(--text); background: var(--surface-2); }
 .topnav__link.active { color: var(--accent); background: var(--accent-soft); }
+@media (max-width: 760px) {
+  .brand__suffix { display: none; }
+}
 @media (max-width: 640px) {
-  .brand__name { display: none; }
   .topnav__link { padding: 7px 9px; }
 }
+/* Phones: logo and status on the first row, the two page links on a second row. */
+@media (max-width: 560px) {
+  .topbar__inner { flex-wrap: wrap; row-gap: 8px; }
+  .brand__name { white-space: nowrap; }
+  .topnav { order: 3; width: 100%; gap: 4px; }
+  .topnav__link { flex: 1; justify-content: center; }
+  html { scroll-padding-top: 116px; }
+}
 @media (max-width: 520px) {
-  .topbar__inner { gap: 6px; padding: 10px 12px; }
-  .topnav { gap: 0; }
-  .topnav__link { padding: 6px 7px; font-size: 0.9rem; }
-  .topnav__link svg { display: none; }
-  .status__pill { padding: 4px 9px; }
+  .topbar__inner { padding: 10px 12px; }
+  .topnav__link { padding: 6px 8px; font-size: 0.9rem; }
 }
 .page-header { padding: 28px 0 20px; }
 .page-header__row { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px 20px; }

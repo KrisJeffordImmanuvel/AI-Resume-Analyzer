@@ -1,4 +1,4 @@
-# One-time setup for the AI Resume & Career Intelligence Platform.
+# One-time setup for Truescope.
 # Safe to run again after updating: it never overwrites your settings (backend\.env).
 # Usage (PowerShell, in the project folder):  .\setup.ps1
 
@@ -61,4 +61,4 @@ try {
 }
 
 Write-Host ''
-Write-Host 'Setup complete. Start the app with:  .\start.ps1' -ForegroundColor Green
+Write-Host 'Setup complete. Start Truescope with:  .\start.ps1' -ForegroundColor Green
