@@ -336,22 +336,40 @@ database tables are added automatically.
 - Scores never use age, gender, marital status, religion, nationality, family
   details, photos or health information.
 
-## Tests
+## Tests and code checks
 
 ```powershell
 cd $HOME\ai-resume-analyzer-app\backend
 .\venv\Scripts\Activate.ps1
-pytest
+pytest               # 245 tests
+ruff check .         # finds likely bugs and unused imports
+ruff format .        # formats the Python code
+cd ..\frontend
+npm run lint         # ESLint: likely bugs in the React code
+npm run build        # checks that the web page builds
 ```
 
-The suite (240 tests) never makes live AI or network calls. Gemini, the
-embedding model and GitHub are replaced by stand-ins, so the tests are fast,
-deterministic and free to run. To check that the frontend builds:
+The tests never make live AI or network calls. Gemini, the embedding model
+and GitHub are replaced by stand-ins, so the tests are fast, deterministic and
+free to run. `setup.ps1` installs Ruff and ESLint along with everything else.
+
+On GitHub, every pull request runs all of these automatically on Windows
+(`.github\workflows\ci.yml`); the result shows at the bottom of the pull
+request.
+
+### Database changes (migrations)
+
+The app updates its database automatically when it starts, keeping your data
+(Alembic migrations in `backend\migrations`). Only if you change
+`backend\models.py` yourself, create a migration for it:
 
 ```powershell
-cd $HOME\ai-resume-analyzer-app\frontend
-npm run build
+cd $HOME\ai-resume-analyzer-app\backend
+.\venv\Scripts\Activate.ps1
+alembic revision --autogenerate -m "describe the change"
 ```
+
+A test fails if `models.py` and the migrations do not match.
 
 ### Dependencies and security checks
 
@@ -376,6 +394,9 @@ backend\
   main.py               FastAPI app, /health, error handling, serves the built page
   request_limit.py      refuses oversized uploads early
   config.py             settings from backend\.env
+  database.py           database connection; applies migrations at start
+  models.py             database tables
+  migrations\           Alembic database migrations
   parsing.py            PDF / DOCX / TXT text extraction and limits
   skills.py             skill recognition against data\skills.json
   matching.py           the scoring engine (used by every mode)
@@ -386,11 +407,15 @@ backend\
   semantic.py           optional Sentence Transformers matching
   roadmap.py, interview.py, resume_quality.py, ats.py, career.py
   github_check.py, linkedin_check.py, fairness.py, comparison.py
-  routers\              API endpoints
+  routers\              API endpoints (shared helpers in routers\common.py)
+  schemas\              API request/response models, one file per area
+  text_utils.py         shared text helpers (bullet points)
   data\                 skills.json (375 skills), role_profiles.json (10 roles)
   check_ai.py           manual check of Gemini and the semantic model
   tests\                pytest suite
-frontend\src\           React + Vite user interface
+  ruff.toml             Ruff settings; requirements-dev.txt adds Ruff
+frontend\src\           React + Vite user interface (eslint.config.js: lint settings)
+.github\workflows\      CI: tests, linters and build on every pull request
 samples\                fictional resumes and a job description
 setup.ps1               one-time setup (safe to run again)
 start.ps1               starts the app at http://localhost:8000
