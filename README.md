@@ -149,7 +149,7 @@ Then open **http://localhost:5173**.
 The app has a separate page for each step, each with its own address, so the
 browser's **Back** and **Forward** buttons work and you can bookmark a page. The
 start page asks whether you are looking for a job or hiring; **Job Seeker** and
-**Job Provider** in the top bar switch at any time, and the logo returns to the
+**Job Provider** in the top bar (on every page after the start page) switch at any time, and the logo returns to the
 start page.
 
 | Page | Address |
