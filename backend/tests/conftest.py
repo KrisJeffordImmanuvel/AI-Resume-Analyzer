@@ -87,13 +87,18 @@ def make_client(tmp_path, monkeypatch):
     from routers.common import get_ai_provider, get_embedder
     from routers.evidence import get_github_client
 
-    def _make(api_key: str = "", demo_mode: str = "false", provider=None, embedder=None, github=None) -> TestClient:
+    def _make(
+        api_key: str = "", demo_mode: str = "false", provider=None, embedder=None, github=None, password: str = ""
+    ) -> TestClient:
         monkeypatch.setenv("DATABASE_URL", f"sqlite:///{(tmp_path / 'test.db').as_posix()}")
         monkeypatch.setenv("DEMO_MODE", demo_mode)
         monkeypatch.setenv("SEMANTIC_MATCHING", "false")
         monkeypatch.delenv("GEMINI_MODEL", raising=False)
         monkeypatch.delenv("GEMINI_FALLBACK_MODELS", raising=False)
         monkeypatch.delenv("SEMANTIC_THRESHOLD", raising=False)
+        monkeypatch.setenv("APP_PASSWORD", password)
+        monkeypatch.delenv("SESSION_SECRET", raising=False)
+        monkeypatch.delenv("REQUIRE_PASSWORD", raising=False)
         if api_key:
             monkeypatch.setenv("GOOGLE_API_KEY", api_key)
         else:

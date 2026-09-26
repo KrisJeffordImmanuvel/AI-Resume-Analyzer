@@ -487,6 +487,8 @@ textarea:focus-visible, .text-input:focus-visible, select:focus-visible { outlin
 }
 .danger-zone > div { flex: 1 1 280px; }
 .danger-zone .muted { margin: 4px 0 0; }
+.settings-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; }
+.settings-row .muted { flex: 1 1 280px; margin: 0; }
 
 /* ---- Fit report: summary first, sections collapsible ---- */
 .summary__top { display: flex; align-items: center; gap: 24px; }
@@ -598,3 +600,6 @@ a.primary, a.secondary { text-decoration: none; }
 .jd-card summary { font-weight: 600; color: var(--accent); }
 .jd-card .raw { margin-top: 12px; }
 @media (prefers-reduced-motion: reduce) { .choice { transition: none; } }
+
+/* ---- Sign in (published site only) ---- */
+.login { max-width: 440px; margin: 0 auto; }

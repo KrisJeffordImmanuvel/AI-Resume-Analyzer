@@ -1,0 +1,16 @@
+# Keep secrets, local data and bulky folders out of the image.
+.git
+.github
+**/.env
+**/.env.local
+**/*.db
+**/venv
+**/.venv
+**/__pycache__
+**/.pytest_cache
+**/.ruff_cache
+frontend/node_modules
+frontend/dist
+backend/tests
+*.ps1
+*.md

@@ -1,0 +1,31 @@
+# Render Blueprint: publishes Truescope as a private website (one password).
+# In Render: New > Blueprint, pick this repository. See README, "Publish on Render".
+services:
+  - type: web
+    name: truescope
+    runtime: docker
+    plan: starter # a disk (to keep your data) needs a paid plan
+    branch: main
+    autoDeploy: true
+    healthCheckPath: /health
+    disk:
+      name: truescope-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      # The password for the site. You type it in Render when you create the service.
+      - key: APP_PASSWORD
+        sync: false
+      # Refuse to start without a strong APP_PASSWORD (12+ characters).
+      - key: REQUIRE_PASSWORD
+        value: "true"
+      # Signs the sign-in cookie. Render makes a random value.
+      - key: SESSION_SECRET
+        generateValue: true
+      # Optional. Your Gemini API key; leave blank for the built-in rules only.
+      - key: GOOGLE_API_KEY
+        sync: false
+      - key: GEMINI_FALLBACK_MODELS
+        sync: false
+      - key: DATABASE_URL
+        value: sqlite:////var/data/app.db

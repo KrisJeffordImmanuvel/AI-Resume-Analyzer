@@ -28,10 +28,18 @@ class Settings:
     semantic_threshold: float
     github_token: str
     frontend_dist: Path
+    app_password: str
+    session_secret: str
+    require_password: bool
 
     @property
     def has_api_key(self) -> bool:
         return bool(self.google_api_key)
+
+    @property
+    def password_required(self) -> bool:
+        """Sign-in is needed only when APP_PASSWORD is set (on your own PC it normally is not)."""
+        return bool(self.app_password)
 
     @property
     def ai_enabled(self) -> bool:
@@ -77,4 +85,9 @@ def get_settings() -> Settings:
         # The built frontend (npm run build). When present, the backend serves the
         # whole app at one address; see start.ps1.
         frontend_dist=Path(os.getenv("FRONTEND_DIST", "").strip() or BACKEND_DIR.parent / "frontend" / "dist"),
+        # Publishing as a website: one password protects the whole app (see auth.py).
+        app_password=os.getenv("APP_PASSWORD", "").strip(),
+        session_secret=os.getenv("SESSION_SECRET", "").strip(),
+        # Set on the server so it refuses to start without a strong APP_PASSWORD.
+        require_password=os.getenv("REQUIRE_PASSWORD", "false").strip().lower() in _TRUE_VALUES,
     )
