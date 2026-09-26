@@ -1,6 +1,7 @@
-# AI Resume & Career Intelligence Platform
+# Truescope
 
-An evidence-grounded resume/job-description analysis platform for two audiences:
+Truescope is an evidence-grounded resume and job-description analysis app for
+two audiences:
 
 - **Job Seekers**: upload a resume and a job description to get a job-fit score,
   matched and missing skills with evidence, a learning roadmap and a mock
