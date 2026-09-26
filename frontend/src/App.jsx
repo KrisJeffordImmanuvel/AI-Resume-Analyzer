@@ -28,14 +28,17 @@ export default function App() {
               Truescope <span className="brand__suffix">Resume &amp; career intelligence</span>
             </span>
           </Link>
-          <nav className="topnav" aria-label="Main">
-            <NavLink to="/seeker" className="topnav__link">
-              <User size={16} aria-hidden="true" /> <span>Job Seeker</span>
-            </NavLink>
-            <NavLink to="/provider" className="topnav__link">
-              <Briefcase size={16} aria-hidden="true" /> <span>Job Provider</span>
-            </NavLink>
-          </nav>
+          {/* The start page offers the same two choices as big cards, so the links are hidden there. */}
+          {pathname !== '/' && (
+            <nav className="topnav" aria-label="Main">
+              <NavLink to="/seeker" className="topnav__link">
+                <User size={16} aria-hidden="true" /> <span>Job Seeker</span>
+              </NavLink>
+              <NavLink to="/provider" className="topnav__link">
+                <Briefcase size={16} aria-hidden="true" /> <span>Job Provider</span>
+              </NavLink>
+            </nav>
+          )}
           <div className="topbar__end">
             <StatusIndicator />
             <NavLink to="/settings" className="settings-link" aria-label="Settings" title="Settings">
