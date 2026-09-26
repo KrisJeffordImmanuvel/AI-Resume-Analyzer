@@ -102,14 +102,16 @@ SAMPLE_FILES = {"resume": ("r.txt", RESUME_TXT), "jd_file": ("jd.txt", JD_TXT)}
 
 
 def test_ai_profile_is_used_and_labelled(make_client):
-    provider = FakeProvider({
-        "skills": [
-            {"name": "CI/CD", "quote": "deployed them to AWS using GitHub Actions"},
-            {"name": "Kubernetes", "quote": "Managed Kubernetes clusters"},  # not in resume
-        ],
-        "experience": [],
-        "education": [],
-    })
+    provider = FakeProvider(
+        {
+            "skills": [
+                {"name": "CI/CD", "quote": "deployed them to AWS using GitHub Actions"},
+                {"name": "Kubernetes", "quote": "Managed Kubernetes clusters"},  # not in resume
+            ],
+            "experience": [],
+            "education": [],
+        }
+    )
     with make_client(api_key="placeholder", provider=provider) as client:
         body = post(client, SAMPLE_FILES).json()
 
@@ -153,10 +155,13 @@ def test_old_ai_off_notice_is_dropped_from_saved_results(make_client):
         session = client.app.state.session_factory()
         row = session.get(Analysis, saved["id"])
         result = dict(row.result)
-        result["sources"] = {**result["sources"], "notices": [
-            "AI extraction is off because no GOOGLE_API_KEY is set. Showing pattern-based results instead.",
-            "Something else worth knowing.",
-        ]}
+        result["sources"] = {
+            **result["sources"],
+            "notices": [
+                "AI extraction is off because no GOOGLE_API_KEY is set. Showing pattern-based results instead.",
+                "Something else worth knowing.",
+            ],
+        }
         row.result = result
         session.commit()
         session.close()
@@ -193,17 +198,38 @@ def test_phase1_results_saved_earlier_still_load(make_client):
 
     legacy = {
         "method": "deterministic",
-        "score": {"value": 50, "label": "x", "matched_weight": 3, "total_weight": 6,
-                  "breakdown": [{"priority": "required", "weight": 3, "matched": 1, "total": 2}]},
-        "matched": [{"skill": "Python", "category": "c", "priority": "required", "match_type": "exact",
-                     "resume_evidence": [{"quote": "Python", "term": "Python", "term_offset": 0}],
-                     "jd_evidence": [{"quote": "Python", "term": "Python", "term_offset": 0}]}],
-        "missing": [], "additional": [], "warnings": [],
+        "score": {
+            "value": 50,
+            "label": "x",
+            "matched_weight": 3,
+            "total_weight": 6,
+            "breakdown": [{"priority": "required", "weight": 3, "matched": 1, "total": 2}],
+        },
+        "matched": [
+            {
+                "skill": "Python",
+                "category": "c",
+                "priority": "required",
+                "match_type": "exact",
+                "resume_evidence": [{"quote": "Python", "term": "Python", "term_offset": 0}],
+                "jd_evidence": [{"quote": "Python", "term": "Python", "term_offset": 0}],
+            }
+        ],
+        "missing": [],
+        "additional": [],
+        "warnings": [],
     }
     with make_client() as client:
         session = client.app.state.session_factory()
-        row = Analysis(resume_filename="old.txt", resume_text="Python", jd_source="paste",
-                       jd_filename=None, jd_text="Python", score=50, result=legacy)
+        row = Analysis(
+            resume_filename="old.txt",
+            resume_text="Python",
+            jd_source="paste",
+            jd_filename=None,
+            jd_text="Python",
+            score=50,
+            result=legacy,
+        )
         session.add(row)
         session.commit()
         resp = client.get(f"/api/analyses/{row.id}")

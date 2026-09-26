@@ -8,8 +8,16 @@ FILES = {
     "resume": ("r.txt", (SAMPLES / "sample_resume.txt").read_bytes()),
     "jd_file": ("jd.txt", (SAMPLES / "sample_job_description.txt").read_bytes()),
 }
-REPOS = [{"name": "api", "html_url": "https://github.com/example/api", "language": "Python", "fork": False,
-          "topics": ["fastapi"], "pushed_at": "2026-01-01T00:00:00Z"}]
+REPOS = [
+    {
+        "name": "api",
+        "html_url": "https://github.com/example/api",
+        "language": "Python",
+        "fork": False,
+        "topics": ["fastapi"],
+        "pushed_at": "2026-01-01T00:00:00Z",
+    }
+]
 
 
 def new_analysis(client) -> int:
@@ -43,8 +51,10 @@ def test_github_errors_are_422_with_message(make_client):
 def test_linkedin_and_fairness_endpoints(make_client):
     with make_client() as client:
         aid = new_analysis(client)
-        li = client.post(f"/api/analyses/{aid}/linkedin",
-                         json={"text": "Experience\nSoftware Engineer\nExample Fintech Pvt Ltd\n2022 - Present"})
+        li = client.post(
+            f"/api/analyses/{aid}/linkedin",
+            json={"text": "Experience\nSoftware Engineer\nExample Fintech Pvt Ltd\n2022 - Present"},
+        )
         blank = client.post(f"/api/analyses/{aid}/linkedin", json={"text": "   "})
         fair = client.get(f"/api/analyses/{aid}/fairness")
         saved = client.get(f"/api/analyses/{aid}/evidence").json()
@@ -57,8 +67,10 @@ def test_linkedin_and_fairness_endpoints(make_client):
 
 def test_evidence_endpoints_404(make_client):
     with make_client() as client:
-        codes = [client.get("/api/analyses/999/evidence").status_code,
-                 client.post("/api/analyses/999/github", json={"username": "x"}).status_code,
-                 client.post("/api/analyses/999/linkedin", json={"text": "x"}).status_code,
-                 client.get("/api/analyses/999/fairness").status_code]
+        codes = [
+            client.get("/api/analyses/999/evidence").status_code,
+            client.post("/api/analyses/999/github", json={"username": "x"}).status_code,
+            client.post("/api/analyses/999/linkedin", json={"text": "x"}).status_code,
+            client.get("/api/analyses/999/fairness").status_code,
+        ]
     assert codes == [404, 404, 404, 404]

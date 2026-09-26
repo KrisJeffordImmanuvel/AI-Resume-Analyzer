@@ -11,8 +11,8 @@ from pydantic import BaseModel, Field
 
 from ai_provider import AIError, AIProvider
 from skills import find_mentions
+from text_utils import is_bullet, strip_bullet
 
-_BULLET = re.compile(r"^\s*(?:[-*•·▪◦‣–]|\d+[.)])\s+")
 _NUMBER = re.compile(r"(?<![A-Za-z])[$€£₹]?\d[\d,.]*\s*(?:%|k\b|m\b|x\b|\+)?", re.I)
 _PLACEHOLDER = re.compile(r"\[[^\[\]]{1,30}\]")
 _FIRST_PERSON = re.compile(r"\b(I|me|my|mine)\b")
@@ -22,16 +22,69 @@ _FILLER = re.compile(
     re.I,
 )
 WEAK_OPENERS = [
-    "responsible for", "worked on", "helped", "assisted", "involved in", "participated in",
-    "duties included", "tasked with", "in charge of", "was part of", "worked with", "handled",
+    "responsible for",
+    "worked on",
+    "helped",
+    "assisted",
+    "involved in",
+    "participated in",
+    "duties included",
+    "tasked with",
+    "in charge of",
+    "was part of",
+    "worked with",
+    "handled",
 ]
 STRONG_VERBS = {
-    "achieved", "automated", "built", "created", "cut", "delivered", "deployed", "designed", "developed",
-    "drove", "engineered", "established", "grew", "implemented", "improved", "increased", "introduced",
-    "launched", "led", "managed", "mentored", "migrated", "optimized", "optimised", "owned", "reduced",
-    "refactored", "resolved", "scaled", "shipped", "simplified", "spearheaded", "streamlined", "wrote",
-    "architected", "containerized", "coordinated", "integrated", "modernized", "negotiated", "trained",
-    "analyzed", "analysed", "produced", "restructured", "saved", "secured", "tested", "maintained",
+    "achieved",
+    "automated",
+    "built",
+    "created",
+    "cut",
+    "delivered",
+    "deployed",
+    "designed",
+    "developed",
+    "drove",
+    "engineered",
+    "established",
+    "grew",
+    "implemented",
+    "improved",
+    "increased",
+    "introduced",
+    "launched",
+    "led",
+    "managed",
+    "mentored",
+    "migrated",
+    "optimized",
+    "optimised",
+    "owned",
+    "reduced",
+    "refactored",
+    "resolved",
+    "scaled",
+    "shipped",
+    "simplified",
+    "spearheaded",
+    "streamlined",
+    "wrote",
+    "architected",
+    "containerized",
+    "coordinated",
+    "integrated",
+    "modernized",
+    "negotiated",
+    "trained",
+    "analyzed",
+    "analysed",
+    "produced",
+    "restructured",
+    "saved",
+    "secured",
+    "tested",
+    "maintained",
 }
 MIN_WORDS, MAX_WORDS = 6, 35
 
@@ -46,7 +99,7 @@ _NUMBER_WORD = re.compile(
 )
 
 
-def _metric(text: str) -> str | None:
+def find_metric(text: str) -> str | None:
     """First number that looks like a metric (years such as 2021 do not count;
     written numbers such as "two engineers" do)."""
     for m in _NUMBER.finditer(text):
@@ -56,54 +109,81 @@ def _metric(text: str) -> str | None:
     return word.group(0) if word else None
 
 
-def _strip_bullet(line: str) -> str:
-    return _BULLET.sub("", line, count=1).strip()
-
-
 def extract_bullets(resume_text: str) -> list[str]:
     """Bullet lines as written in the resume (verbatim, including the bullet mark)."""
-    return [line.strip() for line in resume_text.split("\n") if _BULLET.match(line) and len(_strip_bullet(line)) > 3]
+    return [line.strip() for line in resume_text.split("\n") if is_bullet(line) and len(strip_bullet(line)) > 3]
 
 
 def check_bullet(bullet: str) -> dict:
-    body = _strip_bullet(bullet)
+    body = strip_bullet(bullet)
     words = body.split()
     first = words[0].lower().strip(",.;:") if words else ""
     lowered = body.lower()
     issues = []
 
-    metric = _metric(body)
+    metric = find_metric(body)
     quantified = metric is not None
     if not quantified:
-        issues.append({"code": "no_metric", "severity": "high",
-                       "message": "No number: add a measurable result (time, %, users, cost, size)."})
+        issues.append(
+            {
+                "code": "no_metric",
+                "severity": "high",
+                "message": "No number: add a measurable result (time, %, users, cost, size).",
+            }
+        )
 
     weak = next((w for w in WEAK_OPENERS if lowered.startswith(w)), None)
     if weak:
         verb = "weak"
-        issues.append({"code": "weak_opener", "severity": "high",
-                       "message": f"Starts with “{body[:len(weak)]}”: lead with what you did (e.g. Built, Led, Cut)."})
+        issues.append(
+            {
+                "code": "weak_opener",
+                "severity": "high",
+                "message": f"Starts with “{body[: len(weak)]}”: lead with what you did (e.g. Built, Led, Cut).",
+            }
+        )
     elif first in STRONG_VERBS or (first.endswith("ed") and len(first) > 4):
         verb = "strong"
     else:
         verb = "unclear"
-        issues.append({"code": "no_action_verb", "severity": "medium",
-                       "message": "Does not start with an action verb."})
+        issues.append(
+            {"code": "no_action_verb", "severity": "medium", "message": "Does not start with an action verb."}
+        )
 
     if len(words) < MIN_WORDS:
-        issues.append({"code": "too_short", "severity": "medium",
-                       "message": f"Short ({len(words)} words): say what, how and the result."})
+        issues.append(
+            {
+                "code": "too_short",
+                "severity": "medium",
+                "message": f"Short ({len(words)} words): say what, how and the result.",
+            }
+        )
     elif len(words) > MAX_WORDS:
-        issues.append({"code": "too_long", "severity": "low",
-                       "message": f"Long ({len(words)} words): keep bullets to one or two lines."})
+        issues.append(
+            {
+                "code": "too_long",
+                "severity": "low",
+                "message": f"Long ({len(words)} words): keep bullets to one or two lines.",
+            }
+        )
 
     if _FIRST_PERSON.search(body):
-        issues.append({"code": "first_person", "severity": "low",
-                       "message": "Drop first-person words (I, my); resumes are written without them."})
+        issues.append(
+            {
+                "code": "first_person",
+                "severity": "low",
+                "message": "Drop first-person words (I, my); resumes are written without them.",
+            }
+        )
     filler = _FILLER.search(body)
     if filler:
-        issues.append({"code": "filler", "severity": "low",
-                       "message": f"“{filler.group(0)}” is filler: replace it with a concrete detail."})
+        issues.append(
+            {
+                "code": "filler",
+                "severity": "low",
+                "message": f"“{filler.group(0)}” is filler: replace it with a concrete detail.",
+            }
+        )
 
     return {
         "text": bullet,
@@ -127,7 +207,9 @@ def quality_report(resume_text: str) -> dict:
             "with_issues": sum(bool(b["issues"]) for b in bullets),
         },
         "bullets": bullets,
-        "notices": [] if n else [
+        "notices": []
+        if n
+        else [
             "No bullet points were found. Checks look for lines starting with -, *, • or 1. "
             "If your resume uses a different layout, paste a bullet into the rewrite box instead."
         ],
@@ -138,26 +220,52 @@ def quality_report(resume_text: str) -> dict:
 
 # Gerund -> past tense for common resume verbs (used by the rule-based rewrite).
 _PAST = {
-    "building": "Built", "developing": "Developed", "managing": "Managed", "leading": "Led",
-    "designing": "Designed", "writing": "Wrote", "creating": "Created", "maintaining": "Maintained",
-    "testing": "Tested", "running": "Ran", "making": "Made", "implementing": "Implemented",
-    "improving": "Improved", "coordinating": "Coordinated", "supporting": "Supported",
-    "deploying": "Deployed", "migrating": "Migrated", "automating": "Automated", "analyzing": "Analyzed",
-    "analysing": "Analysed", "handling": "Handled", "training": "Trained", "reviewing": "Reviewed",
-    "planning": "Planned", "monitoring": "Monitored", "optimizing": "Optimized", "integrating": "Integrated",
-    "setting": "Set", "working": "Worked", "helping": "Helped", "preparing": "Prepared",
-    "delivering": "Delivered", "launching": "Launched", "reducing": "Reduced", "fixing": "Fixed",
+    "building": "Built",
+    "developing": "Developed",
+    "managing": "Managed",
+    "leading": "Led",
+    "designing": "Designed",
+    "writing": "Wrote",
+    "creating": "Created",
+    "maintaining": "Maintained",
+    "testing": "Tested",
+    "running": "Ran",
+    "making": "Made",
+    "implementing": "Implemented",
+    "improving": "Improved",
+    "coordinating": "Coordinated",
+    "supporting": "Supported",
+    "deploying": "Deployed",
+    "migrating": "Migrated",
+    "automating": "Automated",
+    "analyzing": "Analyzed",
+    "analysing": "Analysed",
+    "handling": "Handled",
+    "training": "Trained",
+    "reviewing": "Reviewed",
+    "planning": "Planned",
+    "monitoring": "Monitored",
+    "optimizing": "Optimized",
+    "integrating": "Integrated",
+    "setting": "Set",
+    "working": "Worked",
+    "helping": "Helped",
+    "preparing": "Prepared",
+    "delivering": "Delivered",
+    "launching": "Launched",
+    "reducing": "Reduced",
+    "fixing": "Fixed",
 }
 
 
 def rule_based_rewrite(bullet: str) -> dict:
-    body = _strip_bullet(bullet)
+    body = strip_bullet(bullet)
     text = body
     note = []
     lowered = text.lower()
     weak = next((w for w in WEAK_OPENERS if lowered.startswith(w)), None)
     if weak:
-        rest = text[len(weak):].strip()
+        rest = text[len(weak) :].strip()
         first, _, remainder = rest.partition(" ")
         past = _PAST.get(first.lower())
         if past:
@@ -165,13 +273,14 @@ def rule_based_rewrite(bullet: str) -> dict:
             note.append(f"Replaced “{weak} {first}” with “{past}”.")
         elif rest:
             text = f"[Action verb] {rest}"
-            note.append(f"Replaced “{weak}” with a placeholder: choose the verb for what you did "
-                        "(e.g. Built, Improved, Led).")
+            note.append(
+                f"Replaced “{weak}” with a placeholder: choose the verb for what you did (e.g. Built, Improved, Led)."
+            )
     text = _FIRST_PERSON.sub("", text)
     text = re.sub(r"\s{2,}", " ", text).strip(" ,")
     if text and text[0].islower():
         text = text[0].upper() + text[1:]
-    if _metric(text) is None:
+    if find_metric(text) is None:
         text = text.rstrip(".") + ", [result: e.g. reduced X by N%]."
         note.append("Added a placeholder for a measurable result; replace it with a real number.")
     return {"text": text, "placeholders": _PLACEHOLDER.findall(text), "note": " ".join(note) or "Minor clean-up."}
@@ -218,7 +327,7 @@ def rewrite_bullet(bullet: str, resume_text: str, provider: AIProvider | None, f
     if provider is not None:
         try:
             raw = provider.generate_json(
-                system=REWRITE_SYSTEM, prompt=f"<bullet>\n{_strip_bullet(bullet)}\n</bullet>", schema=AIRewrite
+                system=REWRITE_SYSTEM, prompt=f"<bullet>\n{strip_bullet(bullet)}\n</bullet>", schema=AIRewrite
             )
             variants = []
             for item in raw.get("variants", [])[:3]:
@@ -229,16 +338,34 @@ def rewrite_bullet(bullet: str, resume_text: str, provider: AIProvider | None, f
                 if reason:
                     notices.append(f"A suggestion was rejected because it {reason}.")
                     continue
-                variants.append({"text": text, "placeholders": _PLACEHOLDER.findall(text),
-                                 "note": (item.get("note") or "").strip()[:300]})
+                variants.append(
+                    {
+                        "text": text,
+                        "placeholders": _PLACEHOLDER.findall(text),
+                        "note": (item.get("note") or "").strip()[:300],
+                    }
+                )
             if variants:
-                return {"bullet": bullet, "check": check, "source": "ai",
-                        "model": f"{provider.name}:{provider.model}", "fallback_reason": None,
-                        "variants": variants, "notices": notices}
+                return {
+                    "bullet": bullet,
+                    "check": check,
+                    "source": "ai",
+                    "model": f"{provider.name}:{provider.model}",
+                    "fallback_reason": None,
+                    "variants": variants,
+                    "notices": notices,
+                }
             notices.append("No AI suggestion passed the no-new-facts check, so a rule-based rewrite is shown.")
             fallback_reason = "provider_error"
         except AIError as exc:
             fallback_reason = "provider_error"
             notices.append(f"AI rewrite failed, so a rule-based rewrite is shown instead. ({exc})")
-    return {"bullet": bullet, "check": check, "source": "fallback", "model": None,
-            "fallback_reason": fallback_reason, "variants": [rule_based_rewrite(bullet)], "notices": notices}
+    return {
+        "bullet": bullet,
+        "check": check,
+        "source": "fallback",
+        "model": None,
+        "fallback_reason": fallback_reason,
+        "variants": [rule_based_rewrite(bullet)],
+        "notices": notices,
+    }

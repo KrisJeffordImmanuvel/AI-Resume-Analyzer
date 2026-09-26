@@ -103,18 +103,23 @@ function QuestionCard({ q, index }) {
 export default function Interview({ analysisId }) {
   const [state, setState] = useState({ loading: true, data: null, error: null })
 
-  async function load(refresh = false) {
-    setState((s) => ({ ...s, loading: true, error: null }))
-    try {
-      setState({ loading: false, data: await getInterview(analysisId, refresh), error: null })
-    } catch (err) {
-      setState({ loading: false, data: null, error: errorMessage(err) })
-    }
-  }
+  const [request, setRequest] = useState({ refresh: false }) // a new object asks again
 
   useEffect(() => {
-    load()
-  }, [analysisId]) // eslint-disable-line react-hooks/exhaustive-deps
+    let alive = true // ignore an answer that arrives after leaving the tab
+    getInterview(analysisId, request.refresh).then(
+      (data) => alive && setState({ loading: false, data, error: null }),
+      (err) => alive && setState({ loading: false, data: null, error: errorMessage(err) }),
+    )
+    return () => {
+      alive = false
+    }
+  }, [analysisId, request])
+
+  function load(refresh = false) {
+    setState((s) => ({ ...s, loading: true, error: null }))
+    setRequest({ refresh })
+  }
 
   const { loading, data, error } = state
   return (

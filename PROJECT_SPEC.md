@@ -113,7 +113,9 @@ These follow directly from the README's promises and should hold in every phase:
 - Curated skill taxonomy (375 skills in Phase 1) stored as JSON (fallback extraction and
   validation of AI output).
 - No authentication; single local SQLite database.
-- Frontend verification is a build check only (`npm run build`); no Vitest for now.
+- Frontend verification is ESLint plus a build check (`npm run lint`, `npm run build`); no Vitest for now.
+- Python code is linted and formatted with Ruff; database changes go through Alembic migrations, applied at start.
+- CI (GitHub Actions, Windows) runs tests, linters and the build on every pull request.
 - Windows / PowerShell is the only supported development platform for docs.
 
 ## Build phases

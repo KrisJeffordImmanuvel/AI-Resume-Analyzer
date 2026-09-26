@@ -23,8 +23,11 @@ def _status(result: dict, skill: str) -> dict:
     for m in result.get("matched", []):
         if m["skill"] == skill:
             full = m.get("credit", 1.0) == 1.0
-            return {"status": "named" if full else "related", "match_type": m["match_type"],
-                    "quote": m["resume_evidence"][0]["quote"] if m["resume_evidence"] else None}
+            return {
+                "status": "named" if full else "related",
+                "match_type": m["match_type"],
+                "quote": m["resume_evidence"][0]["quote"] if m["resume_evidence"] else None,
+            }
     return {"status": "missing", "match_type": None, "quote": None}
 
 
@@ -34,20 +37,24 @@ def compare(jd_text: str, candidates: list[dict]) -> dict:
     rows = []
     for c in candidates:
         result = c["result"]
-        required = next((b for b in result["score"]["breakdown"] if b["priority"] == "required"),
-                        {"matched": 0, "related": 0, "total": 0})
-        rows.append({
-            "analysis_id": c["analysis_id"],
-            "filename": c["filename"],
-            "added_at": c["created_at"],
-            "score": result["score"]["value"],
-            "required_matched": required["matched"],
-            "required_related": required.get("related", 0),
-            "required_total": required["total"],
-            "missing_required": [m["skill"] for m in result["missing"] if m["priority"] == "required"],
-            "extraction": result.get("sources", {}).get("extraction", "fallback"),
-            "cells": {s["skill"]: _status(result, s["skill"]) for s in skills},
-        })
+        required = next(
+            (b for b in result["score"]["breakdown"] if b["priority"] == "required"),
+            {"matched": 0, "related": 0, "total": 0},
+        )
+        rows.append(
+            {
+                "analysis_id": c["analysis_id"],
+                "filename": c["filename"],
+                "added_at": c["created_at"],
+                "score": result["score"]["value"],
+                "required_matched": required["matched"],
+                "required_related": required.get("related", 0),
+                "required_total": required["total"],
+                "missing_required": [m["skill"] for m in result["missing"] if m["priority"] == "required"],
+                "extraction": result.get("sources", {}).get("extraction", "fallback"),
+                "cells": {s["skill"]: _status(result, s["skill"]) for s in skills},
+            }
+        )
     rows.sort(key=lambda r: (-(r["score"] or 0), -r["required_matched"], r["analysis_id"]))
     for rank, r in enumerate(rows, start=1):
         r["rank"] = rank
@@ -55,5 +62,5 @@ def compare(jd_text: str, candidates: list[dict]) -> dict:
         "skills": skills,
         "candidates": rows,
         "label": "Every candidate is scored by the same engine as Job Seeker mode. Scores are an "
-                 "application-generated estimate to support, not replace, human review.",
+        "application-generated estimate to support, not replace, human review.",
     }

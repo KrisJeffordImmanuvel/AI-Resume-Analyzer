@@ -37,7 +37,7 @@ if (-not (Test-Path $venvPython)) {
 }
 
 Step 'Python packages (the first time this includes PyTorch and can take several minutes)'
-& $venvPython -m pip install -r (Join-Path $backend 'requirements.txt')
+& $venvPython -m pip install -r (Join-Path $backend 'requirements-dev.txt')
 if ($LASTEXITCODE -ne 0) { Fail 'Installing Python packages failed. Check your internet connection and run .\setup.ps1 again.' }
 
 Step 'Settings'

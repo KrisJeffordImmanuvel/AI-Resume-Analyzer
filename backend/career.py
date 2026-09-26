@@ -18,8 +18,10 @@ from skills import skill_index
 ROLES_PATH = Path(__file__).resolve().parent / "data" / "role_profiles.json"
 GAP_MONTHS = 6  # gaps shorter than this are normal job-change time, not flagged
 
-_MONTHS = {m: i for i, m in enumerate(
-    ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"], start=1)}
+_MONTHS = {
+    m: i
+    for i, m in enumerate(["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"], start=1)
+}
 _MONTH = r"(?:jan|feb|mar|apr|may|jun|jul|aug|sep|sept|oct|nov|dec)[a-z]*\.?"
 _POINT = rf"(?:(?P<{{m}}>{_MONTH})\s+)?(?P<{{y}}>(?:19|20)\d\d)"
 _RANGE = re.compile(
@@ -33,6 +35,7 @@ _YEAR = re.compile(r"\b(19[5-9]\d|20\d\d)\b")
 
 
 # ---- Role fit ----------------------------------------------------------------------
+
 
 @lru_cache(maxsize=1)
 def load_roles() -> tuple[dict, ...]:
@@ -59,22 +62,25 @@ def role_fits(resume_text: str, ai_skills: dict[str, dict]) -> list[dict]:
     for role in load_roles():
         result = analyze(resume_text, role_jd(role), ai_skills=ai_skills)
         required = result["score"]["breakdown"][0]
-        fits.append({
-            "id": role["id"],
-            "name": role["name"],
-            "short": role["short"],
-            "score": result["score"]["value"] or 0,
-            "required_matched": required["matched"],
-            "required_related": required["related"],
-            "required_total": required["total"],
-            "matched": [m["skill"] for m in result["matched"]],
-            "missing_required": [m["skill"] for m in result["missing"] if m["priority"] == "required"],
-            "missing_preferred": [m["skill"] for m in result["missing"] if m["priority"] == "preferred"],
-        })
+        fits.append(
+            {
+                "id": role["id"],
+                "name": role["name"],
+                "short": role["short"],
+                "score": result["score"]["value"] or 0,
+                "required_matched": required["matched"],
+                "required_related": required["related"],
+                "required_total": required["total"],
+                "matched": [m["skill"] for m in result["matched"]],
+                "missing_required": [m["skill"] for m in result["missing"] if m["priority"] == "required"],
+                "missing_preferred": [m["skill"] for m in result["missing"] if m["priority"] == "preferred"],
+            }
+        )
     return fits
 
 
 # ---- Timeline ----------------------------------------------------------------------
+
 
 def _month(name: str | None) -> int | None:
     return _MONTHS.get(name[:3].lower()) if name else None
@@ -90,13 +96,18 @@ def parse_dates(text: str, today: date) -> dict | None:
         end = (today.year, today.month) if current else (int(m["y2"]), _month(m["m2"]) or 12)
         if end < start:
             return None
-        return {"start": start, "end": end, "current": current, "text": m.group(0),
-                "month_precision": bool(m["m1"])}
+        return {"start": start, "end": end, "current": current, "text": m.group(0), "month_precision": bool(m["m1"])}
     y = _YEAR.search(text or "")
     if y:
         year = int(y.group(1))
-        return {"start": (year, 1), "end": (year, 12), "current": False, "text": y.group(0),
-                "month_precision": False, "single_year": True}
+        return {
+            "start": (year, 1),
+            "end": (year, 12),
+            "current": False,
+            "text": y.group(0),
+            "month_precision": False,
+            "single_year": True,
+        }
     return None
 
 
@@ -122,29 +133,38 @@ def build_timeline(profile: dict, today: date | None = None) -> dict:
                 undated += 1
                 continue
             is_point = kind == "education" and parsed.get("single_year")
-            items.append({
-                "kind": kind,
-                "title": e.get(title_key),
-                "organization": e.get(org_key),
-                "start": _ym(parsed["start"]),
-                "end": _ym(parsed["end"]),
-                "current": parsed["current"],
-                "dates_text": parsed["text"],
-                "duration_months": None if is_point else _months_between(parsed["start"], parsed["end"]) + 1,
-                "month_precision": parsed["month_precision"],
-                "evidence": e["evidence"],
-            })
+            items.append(
+                {
+                    "kind": kind,
+                    "title": e.get(title_key),
+                    "organization": e.get(org_key),
+                    "start": _ym(parsed["start"]),
+                    "end": _ym(parsed["end"]),
+                    "current": parsed["current"],
+                    "dates_text": parsed["text"],
+                    "duration_months": None if is_point else _months_between(parsed["start"], parsed["end"]) + 1,
+                    "month_precision": parsed["month_precision"],
+                    "evidence": e["evidence"],
+                }
+            )
     items.sort(key=lambda i: (i["start"], i["kind"] != "education"))
 
     roles = [i for i in items if i["kind"] == "role"]
     gaps = []
-    for prev, nxt in zip(roles, roles[1:]):
+    for prev, nxt in zip(roles, roles[1:], strict=False):  # consecutive pairs
         py, pm = map(int, prev["end"].split("-"))
         ny, nm = map(int, nxt["start"].split("-"))
         gap = _months_between((py, pm), (ny, nm)) - 1
         if gap >= GAP_MONTHS:
-            gaps.append({"after": prev["evidence"]["quote"], "before": nxt["evidence"]["quote"],
-                         "from": prev["end"], "to": nxt["start"], "months": gap})
+            gaps.append(
+                {
+                    "after": prev["evidence"]["quote"],
+                    "before": nxt["evidence"]["quote"],
+                    "from": prev["end"],
+                    "to": nxt["start"],
+                    "months": gap,
+                }
+            )
 
     span = None
     if roles:
@@ -172,7 +192,7 @@ def career_view(resume_text: str, result: dict, today: date | None = None) -> di
     fits = role_fits(resume_text, ai_skills)
     return {
         "label": "Estimates against generic role profiles, scored with the same engine as the job-fit score. "
-                 "Not an official assessment.",
+        "Not an official assessment.",
         "profile_source": result.get("sources", {}).get("extraction", "fallback"),
         "roles": fits,
         "timeline": build_timeline(profile, today),

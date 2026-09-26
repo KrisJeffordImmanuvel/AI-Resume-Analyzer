@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Briefcase, ClipboardPaste, EyeOff, FileText, Loader2, Plus, Trash2, Upload, Users, Check, Minus, X, Info } from 'lucide-react'
-import { addCandidates, createJob, deleteJob, errorMessage, getAnalysis, getJob, isCancelled, listJobs, removeCandidate } from './api.js'
+import { Briefcase, EyeOff, Plus, Trash2, Upload, Users } from 'lucide-react'
+import { addCandidates, deleteJob, errorMessage, getAnalysis, getJob, isCancelled, listJobs, removeCandidate } from './api.js'
 import Working from './Working.jsx'
+import FileDrop from './FileDrop.jsx'
 import AnalysisResults from './AnalysisResults.jsx'
+import Comparison from './Comparison.jsx'
+import NewJobForm from './NewJobForm.jsx'
 import { announce } from './Announcer.jsx'
-import { TabList, TabPanel } from './Tabs.jsx'
 
-const PRIORITY_LABEL = { required: 'Required', standard: 'Mentioned', preferred: 'Nice to have' }
-const PRIORITY_SHORT = { required: 'Req', standard: 'Mid', preferred: 'Nice' }
 const MAX_FILES = 10
 const MAX_MB = 5
 const RESUME_TYPES = ['.pdf', '.docx', '.txt']
@@ -22,236 +22,6 @@ function fileProblems(files) {
   })
 }
 const letter = (i) => (i < 26 ? String.fromCharCode(65 + i) : `${String.fromCharCode(65 + Math.floor(i / 26) - 1)}${String.fromCharCode(65 + (i % 26))}`)
-
-function NewJobForm({ onCreated, onCancel }) {
-  const [title, setTitle] = useState('')
-  const [mode, setMode] = useState('paste')
-  const [text, setText] = useState('')
-  const [file, setFile] = useState(null)
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState(null)
-  const ready = mode === 'paste' ? text.trim() : file
-
-  async function submit(e) {
-    e.preventDefault()
-    setBusy(true)
-    setError(null)
-    try {
-      const created = await createJob({ title: title.trim(), jdFile: mode === 'upload' ? file : null, jdText: text })
-      announce(`Job "${created.title}" created. You can now add candidates.`)
-      onCreated(created)
-    } catch (err) {
-      setError(errorMessage(err))
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  return (
-    <form className="form" onSubmit={submit}>
-      <label className="field">
-        <span className="field__label">Job title <small>(optional; defaults to the first line)</small></span>
-        <input className="text-input" type="text" maxLength={200} value={title} onChange={(e) => setTitle(e.target.value)} />
-      </label>
-      <fieldset className="field">
-        <legend className="field__label">Job description</legend>
-        <TabList
-          id="job-jd"
-          label="How to add the job description"
-          tabs={[['paste', 'Paste text', ClipboardPaste], ['upload', 'Upload .txt', Upload]]}
-          value={mode}
-          onChange={setMode}
-        />
-        <TabPanel id="job-jd" value={mode} className="field">
-          {mode === 'paste' ? (
-            <textarea rows={8} value={text} onChange={(e) => setText(e.target.value)} aria-label="Job description text"
-              placeholder="Paste the full job description…" />
-          ) : (
-            <input type="file" accept=".txt" aria-label="Job description file (.txt)" onChange={(e) => setFile(e.target.files[0] || null)} />
-          )}
-        </TabPanel>
-      </fieldset>
-      {error && <p className="form__error" role="alert">{error}</p>}
-      <div className="form__actions">
-        <button type="submit" className="primary" disabled={busy || !ready}>
-          {busy ? <Loader2 size={16} className="spin" aria-hidden="true" /> : <Plus size={16} aria-hidden="true" />}
-          Create job
-        </button>
-        {onCancel && (
-          <button type="button" className="icon-button" onClick={onCancel}>Cancel</button>
-        )}
-      </div>
-    </form>
-  )
-}
-
-const CELL = {
-  named: [Check, 'Named', 'cell--named'],
-  related: [Minus, 'Related (half)', 'cell--related'],
-  missing: [X, 'Missing', 'cell--missing'],
-}
-
-/** A matrix cell. With resume evidence it is a button that shows the quote below the table (keyboard and touch too). */
-function Cell({ cell, skill, candidate, shown, onShow }) {
-  const [Icon, text, cls] = CELL[cell.status]
-  const content = (
-    <>
-      <Icon size={14} aria-hidden="true" />
-      <span className="matrix-cell__text">{text}</span>
-    </>
-  )
-  if (!cell.quote) return <span className={`matrix-cell ${cls}`}>{content}</span>
-  return (
-    <button
-      type="button"
-      className={`matrix-cell matrix-cell--button ${cls}${shown ? ' matrix-cell--shown' : ''}`}
-      title={`“${cell.quote}”`}
-      aria-label={`${skill}, ${candidate}: ${text}. Show the resume line`}
-      aria-expanded={shown}
-      aria-controls="matrix-quote"
-      onClick={onShow}
-    >
-      {content}
-    </button>
-  )
-}
-
-function Comparison({ job, blind, labels, onOpen, onRemove, openId }) {
-  const [picked, setPicked] = useState(null) // { skill, id }
-  const name = (c) => (blind ? `Candidate ${labels[c.analysis_id]}` : c.filename)
-  const pickedCandidate = picked && job.candidates.find((c) => c.analysis_id === picked.id)
-  const pickedCell = pickedCandidate?.cells[picked.skill]
-  const short = (c) => (blind ? labels[c.analysis_id] : c.filename.replace(/\.(pdf|docx|txt)$/i, ''))
-  return (
-    <>
-      <section className="card">
-        <h2>Ranking</h2>
-        <p className="method"><Info size={14} aria-hidden="true" /> {job.label}</p>
-        <div className="table-scroll">
-          <table className="breakdown roles ranking">
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>Candidate</th>
-                <th>Fit</th>
-                <th className="hide-narrow">Required</th>
-                <th className="hide-narrow"><span className="sr-only">Actions</span></th>
-              </tr>
-            </thead>
-            <tbody>
-              {job.candidates.map((c) => (
-                <tr key={c.analysis_id} className={openId === c.analysis_id ? 'row-open' : ''}>
-                  <td>{c.rank}</td>
-                  <td>
-                    {name(c)}
-                    <div className="role-missing">
-                      {c.missing_required.length ? `Missing: ${c.missing_required.join(', ')}` : 'All required skills found'}
-                      {c.extraction === 'ai' ? ' · AI profile' : ''}
-                    </div>
-                    <div className="only-narrow narrow-meta">
-                      Required {c.required_matched} of {c.required_total}
-                      {c.required_related > 0 && ` (+${c.required_related} related)`}
-                      <span className="narrow-actions">
-                        <button type="button" className="icon-button" onClick={() => onOpen(c.analysis_id)}>
-                          <FileText size={15} aria-hidden="true" /> Report
-                        </button>
-                        <button type="button" className="icon-button" onClick={() => onRemove(c)} aria-label={`Remove ${name(c)}`}>
-                          <Trash2 size={15} aria-hidden="true" />
-                        </button>
-                      </span>
-                    </div>
-                  </td>
-                  <td>
-                    <div className="fit-cell">
-                      <span className="fit-value">{c.score ?? '—'}</span>
-                      <span className="fit-bar" aria-hidden="true"><span style={{ width: `${c.score || 0}%` }} /></span>
-                    </div>
-                  </td>
-                  <td className="hide-narrow">
-                    {c.required_matched} of {c.required_total}
-                    {c.required_related > 0 && <span className="role-related"> +{c.required_related} related</span>}
-                  </td>
-                  <td className="actions hide-narrow">
-                    <button type="button" className="icon-button" onClick={() => onOpen(c.analysis_id)}>
-                      <FileText size={15} aria-hidden="true" /> Report
-                    </button>
-                    <button type="button" className="icon-button" onClick={() => onRemove(c)} aria-label={`Remove ${name(c)}`}>
-                      <Trash2 size={15} aria-hidden="true" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <section className="card">
-        <h2>Skill matrix</h2>
-        <p className="muted">
-          Each job skill against each candidate. Named: the resume names the skill (full credit). Related: the resume only relates to it (half credit). Missing: no evidence. Select a Named or Related cell to see the resume line it is based on.
-        </p>
-        {!blind && (
-          <p className="muted matrix-key only-narrow">
-            {job.candidates.map((c) => `${labels[c.analysis_id]} = ${c.filename}`).join(' · ')}
-          </p>
-        )}
-        <div className="table-scroll matrix-scroll" role="region" aria-label="Skill matrix table" tabIndex={0}>
-          <table className="matrix">
-            <thead>
-              <tr>
-                <th className="matrix-skill">Skill</th>
-                {job.candidates.map((c) => (
-                  <th key={c.analysis_id} title={name(c)}>
-                    <span className="matrix-head hide-narrow">{short(c)}</span>
-                    <span className="only-narrow">{labels[c.analysis_id]}</span>
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {job.skills.map((s) => (
-                <tr key={s.skill}>
-                  <th className="matrix-skill" scope="row">
-                    {s.skill}{' '}
-                    <span className={`badge badge--${s.priority}`} title={PRIORITY_LABEL[s.priority]}>
-                      <span className="hide-narrow">{PRIORITY_LABEL[s.priority]}</span>
-                      <span className="only-narrow" aria-hidden="true">{PRIORITY_SHORT[s.priority]}</span>
-                      <span className="sr-only only-narrow-sr">{PRIORITY_LABEL[s.priority]}</span>
-                    </span>
-                  </th>
-                  {job.candidates.map((c) => (
-                    <td key={c.analysis_id}>
-                      <Cell
-                        cell={c.cells[s.skill]}
-                        skill={s.skill}
-                        candidate={name(c)}
-                        shown={picked?.skill === s.skill && picked?.id === c.analysis_id}
-                        onShow={() =>
-                          setPicked((p) => (p?.skill === s.skill && p?.id === c.analysis_id ? null : { skill: s.skill, id: c.analysis_id }))
-                        }
-                      />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div id="matrix-quote" className="matrix-quote" aria-live="polite">
-          {pickedCell?.quote && (
-            <>
-              <p>
-                <strong>{picked.skill}</strong> · {name(pickedCandidate)} · {CELL[pickedCell.status][1]}
-              </p>
-              <blockquote className="quote">{pickedCell.quote}</blockquote>
-            </>
-          )}
-        </div>
-      </section>
-    </>
-  )
-}
 
 export default function Provider() {
   const [jobs, setJobs] = useState([])
@@ -433,8 +203,9 @@ export default function Provider() {
             Upload up to {MAX_FILES} resumes at a time (PDF, DOCX or TXT). Each one is analysed with exactly the same
             engine as Job Seeker mode.
           </p>
-          <input ref={fileInput} type="file" multiple accept=".pdf,.docx,.txt" aria-label={`Candidate resumes (up to ${MAX_FILES})`}
-            onChange={(e) => setFiles([...e.target.files])} />
+          <FileDrop id="candidate-files" multiple inputRef={fileInput} accept=".pdf,.docx,.txt" files={files}
+            label={`Candidate resumes (up to ${MAX_FILES})`} hint={`Up to ${MAX_FILES} resumes: PDF, DOCX or TXT, 5 MB each`}
+            onFiles={setFiles} />
           {tooMany && <p className="form__error" role="alert">Choose at most {MAX_FILES} files.</p>}
           {problems.length > 0 && (
             <ul className="outcomes" role="alert">

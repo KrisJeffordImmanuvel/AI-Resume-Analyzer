@@ -63,8 +63,12 @@ class FakeGitHub:
         self.calls.append(("user", username))
         if self.error:
             raise self.error
-        return self.user_data or {"login": username, "html_url": f"https://github.com/{username}",
-                                  "public_repos": len(self.repos_data), "followers": 0}
+        return self.user_data or {
+            "login": username,
+            "html_url": f"https://github.com/{username}",
+            "public_repos": len(self.repos_data),
+            "followers": 0,
+        }
 
     def repos(self, username):
         self.calls.append(("repos", username))
@@ -80,7 +84,7 @@ def make_client(tmp_path, monkeypatch):
     test ever calls Gemini or downloads a model.
     """
     from main import app
-    from routers.analyses import get_ai_provider, get_embedder
+    from routers.common import get_ai_provider, get_embedder
     from routers.evidence import get_github_client
 
     def _make(api_key: str = "", demo_mode: str = "false", provider=None, embedder=None, github=None) -> TestClient:

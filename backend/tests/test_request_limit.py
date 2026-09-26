@@ -19,15 +19,17 @@ def test_oversized_upload_without_length_is_refused(make_client):
             yield chunk
 
     with make_client() as client:
-        resp = client.post("/api/analyses", content=stream(),
-                           headers={"content-type": "multipart/form-data; boundary=x"})
+        resp = client.post(
+            "/api/analyses", content=stream(), headers={"content-type": "multipart/form-data; boundary=x"}
+        )
     assert resp.status_code == 413
 
 
 def test_normal_requests_are_unaffected(make_client):
     with make_client() as client:
-        resp = client.post("/api/analyses", files={"resume": ("cv.txt", b"Python developer")},
-                           data={"jd_text": "Need Python"})
+        resp = client.post(
+            "/api/analyses", files={"resume": ("cv.txt", b"Python developer")}, data={"jd_text": "Need Python"}
+        )
         assert resp.status_code == 201
         assert client.get("/health").status_code == 200
 

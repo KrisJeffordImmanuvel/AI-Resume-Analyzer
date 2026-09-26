@@ -15,13 +15,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
 from config import get_settings
-import models  # noqa: F401  (registers tables before init_db creates them)
 from database import check_db, init_db, make_engine, make_session_factory
-from routers import analyses, coaching, data, evidence, jobs, resume_tools, samples
-from schemas import HealthResponse
 from parsing import MAX_UPLOAD_BYTES
 from request_limit import RequestSizeLimit
+from routers import analyses, coaching, data, evidence, jobs, resume_tools, samples
 from routers.jobs import MAX_FILES_PER_UPLOAD
+from schemas import HealthResponse
 
 APP_VERSION = "1.0.0"
 logger = logging.getLogger("resume_analyzer")
@@ -59,9 +58,11 @@ async def unexpected_error(request: Request, exc: Exception) -> JSONResponse:
     logger.exception("Unhandled error on %s %s", request.method, request.url.path)
     return JSONResponse(
         status_code=500,
-        content={"detail": "Something went wrong on the server. The details were written to the app's "
-                           "PowerShell window. Please try again; if it keeps happening, close that window "
-                           "and run start.ps1 again."},
+        content={
+            "detail": "Something went wrong on the server. The details were written to the app's "
+            "PowerShell window. Please try again; if it keeps happening, close that window "
+            "and run start.ps1 again."
+        },
     )
 
 

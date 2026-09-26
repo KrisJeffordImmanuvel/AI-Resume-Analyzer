@@ -8,6 +8,7 @@ from matching import analyze
 from profile_extraction import extract_profile
 from semantic import Embedder, EmbedderUnavailable, best_matches
 
+
 def run_analysis(
     resume_text: str,
     jd_text: str,

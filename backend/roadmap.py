@@ -71,13 +71,25 @@ def youtube_search_url(skill: str) -> str:
 
 def _gaps(result: dict) -> list[dict]:
     gaps = [
-        {"skill": m["skill"], "category": m["category"], "priority": m["priority"], "kind": "learn",
-         "jd_evidence": m["jd_evidence"][:1], "resume_evidence": []}
+        {
+            "skill": m["skill"],
+            "category": m["category"],
+            "priority": m["priority"],
+            "kind": "learn",
+            "jd_evidence": m["jd_evidence"][:1],
+            "resume_evidence": [],
+        }
         for m in result.get("missing", [])
     ]
     gaps += [
-        {"skill": m["skill"], "category": m["category"], "priority": m["priority"], "kind": "strengthen",
-         "jd_evidence": m["jd_evidence"][:1], "resume_evidence": m["resume_evidence"][:1]}
+        {
+            "skill": m["skill"],
+            "category": m["category"],
+            "priority": m["priority"],
+            "kind": "strengthen",
+            "jd_evidence": m["jd_evidence"][:1],
+            "resume_evidence": m["resume_evidence"][:1],
+        }
         for m in result.get("matched", [])
         if m.get("credit", 1.0) < 1.0
     ]
@@ -100,6 +112,7 @@ def _template_steps(gap: dict) -> tuple[list[str], str]:
 
 # ---- AI --------------------------------------------------------------------------
 
+
 class _AIRoadmapItem(BaseModel):
     skill: str = Field(description="Exactly one of the skill names given.")
     steps: list[str] = Field(description="3 to 5 short, concrete study steps, in order.")
@@ -119,11 +132,15 @@ Rules:
 
 
 def _prompt(gaps: list[dict], known_skills: list[str]) -> str:
-    lines = [f"- {g['skill']} ({g['priority']}; {'new skill' if g['kind'] == 'learn' else 'has related experience'})"
-             for g in gaps]
+    lines = [
+        f"- {g['skill']} ({g['priority']}; {'new skill' if g['kind'] == 'learn' else 'has related experience'})"
+        for g in gaps
+    ]
     return (
-        "Skills to plan for:\n" + "\n".join(lines)
-        + "\n\nSkills the candidate already has (verified): " + (", ".join(known_skills) or "none listed")
+        "Skills to plan for:\n"
+        + "\n".join(lines)
+        + "\n\nSkills the candidate already has (verified): "
+        + (", ".join(known_skills) or "none listed")
     )
 
 
@@ -159,13 +176,15 @@ def build_roadmap(result: dict, provider: AIProvider | None, fallback_reason: st
         else:
             steps, project = _template_steps(gap)
             steps_source = "template"
-        items.append({
-            **gap,
-            "steps": steps,
-            "project_idea": project,
-            "steps_source": steps_source,
-            "youtube_url": youtube_search_url(gap["skill"]),
-        })
+        items.append(
+            {
+                **gap,
+                "steps": steps,
+                "project_idea": project,
+                "steps_source": steps_source,
+                "youtube_url": youtube_search_url(gap["skill"]),
+            }
+        )
 
     return {
         "source": source,

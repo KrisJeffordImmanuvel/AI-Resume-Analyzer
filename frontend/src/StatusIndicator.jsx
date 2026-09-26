@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { getHealth } from './api.js'
 
@@ -7,30 +7,36 @@ const OFFLINE_RETRY_MS = 5000
 /** Compact status in the page header; details open on click. */
 export default function StatusIndicator() {
   const [state, setState] = useState({ checking: true, health: null, offline: false })
-  const retryTimer = useRef(null)
-
-  const check = useCallback(async () => {
-    clearTimeout(retryTimer.current)
-    setState((s) => ({ ...s, checking: true }))
-    try {
-      const health = await getHealth()
-      setState({ checking: false, health, offline: false })
-    } catch {
-      setState({ checking: false, health: null, offline: true })
-      // The server may still be starting; keep trying quietly.
-      retryTimer.current = setTimeout(check, OFFLINE_RETRY_MS)
-    }
-  }, [])
+  const [round, setRound] = useState(0) // "Check again" starts a new round
 
   useEffect(() => {
-    check()
-    const onFocus = () => check()
-    window.addEventListener('focus', onFocus)
-    return () => {
-      clearTimeout(retryTimer.current)
-      window.removeEventListener('focus', onFocus)
+    let alive = true
+    let retry = null
+    function probe() {
+      clearTimeout(retry)
+      getHealth().then(
+        (health) => alive && setState({ checking: false, health, offline: false }),
+        () => {
+          if (!alive) return
+          setState({ checking: false, health: null, offline: true })
+          // The server may still be starting; keep trying quietly.
+          retry = setTimeout(probe, OFFLINE_RETRY_MS)
+        },
+      )
     }
-  }, [check])
+    probe()
+    window.addEventListener('focus', probe)
+    return () => {
+      alive = false
+      clearTimeout(retry)
+      window.removeEventListener('focus', probe)
+    }
+  }, [round])
+
+  function checkNow() {
+    setState((s) => ({ ...s, checking: true }))
+    setRound((n) => n + 1)
+  }
 
   const { checking, health, offline } = state
   let tone, label, detail
@@ -68,7 +74,7 @@ export default function StatusIndicator() {
       <div className="status__panel">
         <p>{detail}</p>
         {health && <p className="muted">Version {health.version}</p>}
-        <button type="button" className="icon-button" onClick={check} disabled={checking}>
+        <button type="button" className="icon-button" onClick={checkNow} disabled={checking}>
           <RefreshCw size={14} aria-hidden="true" className={checking ? 'spin' : ''} /> Check again
         </button>
       </div>

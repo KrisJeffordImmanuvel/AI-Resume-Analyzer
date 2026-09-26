@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from ai_provider import AIError, AIProvider
 from evidence import find_term, value_in, verified_quote
 from skills import find_mentions, group_by_skill
+from text_utils import is_bullet
 
 MAX_SKILLS = 60
 MAX_EXPERIENCE = 20
@@ -20,6 +21,7 @@ MAX_EDUCATION = 10
 
 
 # ---- Schema the AI must fill -------------------------------------------------
+
 
 class _AISkill(BaseModel):
     name: str = Field(description="Skill name, e.g. 'Python' or 'CI/CD'.")
@@ -57,17 +59,14 @@ Rules:
 
 
 def _prompt(resume_text: str) -> str:
-    return (
-        "Extract the candidate's skills, work experience and education.\n\n"
-        "<resume>\n" + resume_text + "\n</resume>"
-    )
+    return "Extract the candidate's skills, work experience and education.\n\n<resume>\n" + resume_text + "\n</resume>"
 
 
 def _evidence(source: str, quote: str, term: str | None = None) -> dict:
     offset = find_term(quote, term) if term else None
     return {
         "quote": quote,
-        "term": quote[offset:offset + len(term)] if offset is not None else None,
+        "term": quote[offset : offset + len(term)] if offset is not None else None,
         "term_offset": offset,
         "similarity": None,
     }
@@ -92,11 +91,13 @@ def _verify_ai_profile(resume_text: str, raw: dict) -> tuple[dict, int]:
         if name.lower() in seen_skills:
             continue
         seen_skills.add(name.lower())
-        skills.append({
-            "name": name,
-            "mapped_skill": _map_to_taxonomy(name),
-            "evidence": _evidence(resume_text, quote, name),
-        })
+        skills.append(
+            {
+                "name": name,
+                "mapped_skill": _map_to_taxonomy(name),
+                "evidence": _evidence(resume_text, quote, name),
+            }
+        )
 
     def entries(items, limit, main_field, optional_fields):
         nonlocal discarded
@@ -123,7 +124,9 @@ def _verify_ai_profile(resume_text: str, raw: dict) -> tuple[dict, int]:
 # ---- Deterministic fallback --------------------------------------------------
 
 _SECTION_WORDS = {
-    "experience": re.compile(r"^(work |professional |relevant )?(experience|employment( history)?|work history|career history)$", re.I),
+    "experience": re.compile(
+        r"^(work |professional |relevant )?(experience|employment( history)?|work history|career history)$", re.I
+    ),
     "education": re.compile(r"^(education|academic background|qualifications|education and training)$", re.I),
     "other": re.compile(
         r"^(skills|technical skills|summary|profile|objective|projects|certifications?|awards|languages|"
@@ -138,7 +141,6 @@ _DATE_RANGE = re.compile(
     re.I,
 )
 _DURATION = re.compile(r"\b\d+\s*(?:yrs?|years?|mos?|months?)\b", re.I)
-_BULLET = re.compile(r"^\s*[-*•·▪◦‣–]\s+")
 
 
 def _section_of(line: str) -> str | None:
@@ -151,15 +153,17 @@ def _section_of(line: str) -> str | None:
     return None
 
 
-def _fallback_profile(resume_text: str) -> dict:
+def fallback_profile(resume_text: str) -> dict:
     skills = []
     for name, mentions in group_by_skill(find_mentions(resume_text)).items():
         m = mentions[0]
-        skills.append({
-            "name": name,
-            "mapped_skill": name,
-            "evidence": {"quote": m.quote, "term": m.term, "term_offset": m.term_offset, "similarity": None},
-        })
+        skills.append(
+            {
+                "name": name,
+                "mapped_skill": name,
+                "evidence": {"quote": m.quote, "term": m.term, "term_offset": m.term_offset, "similarity": None},
+            }
+        )
 
     experience, education = [], []
     section = None
@@ -173,7 +177,7 @@ def _fallback_profile(resume_text: str) -> dict:
             section, pending = heading, []
             continue
         text = line.strip()
-        if not text or _BULLET.match(line):
+        if not text or is_bullet(line):
             pending = []
             continue
         dates = _DATE_RANGE.search(text)
@@ -183,22 +187,25 @@ def _fallback_profile(resume_text: str) -> dict:
             # date-only line; include up to two of them so the entry is recognisable.
             rest = _DURATION.sub(" ", text.replace(dates.group(0), " "))  # LinkedIn adds "· 2 yrs 9 mos"
             if len(re.findall(r"[A-Za-z]{2,}", rest)) < 2 and pending:
-                evidence["quote"] = resume_text[pending[-2:][0]:end].strip()
+                evidence["quote"] = resume_text[pending[-2:][0] : end].strip()
             experience.append({"title": None, "organization": None, "dates": dates.group(0), "evidence": evidence})
             pending = []
         elif section == "experience":
             pending.append(start)
         elif section == "education" and len(education) < MAX_EDUCATION:
-            education.append({
-                "qualification": None,
-                "institution": None,
-                "dates": _YEAR.search(text).group(0) if _YEAR.search(text) else None,
-                "evidence": evidence,
-            })
+            education.append(
+                {
+                    "qualification": None,
+                    "institution": None,
+                    "dates": _YEAR.search(text).group(0) if _YEAR.search(text) else None,
+                    "evidence": evidence,
+                }
+            )
     return {"skills": skills, "experience": experience, "education": education}
 
 
 # ---- Entry point ---------------------------------------------------------------
+
 
 def extract_profile(resume_text: str, provider: AIProvider | None, fallback_reason: str | None) -> dict:
     """Return the profile plus how it was produced. Never raises for AI problems."""
@@ -217,13 +224,15 @@ def extract_profile(resume_text: str, provider: AIProvider | None, fallback_reas
             }
         except AIError as exc:
             fallback_reason = "provider_error"
-            notices.append(f"AI could not read the resume this time, so the app used its built-in rules instead. ({exc})")
+            notices.append(
+                f"AI could not read the resume this time, so the app used its built-in rules instead. ({exc})"
+            )
 
     return {
         "source": "fallback",
         "model": None,
         "fallback_reason": fallback_reason,
-        **_fallback_profile(resume_text),
+        **fallback_profile(resume_text),
         "discarded": 0,
         "notices": notices,
     }

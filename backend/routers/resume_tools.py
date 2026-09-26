@@ -11,8 +11,7 @@ from career import career_view
 from config import Settings, get_settings
 from models import BulletRewrite
 from resume_quality import quality_report, rewrite_bullet
-from routers.analyses import _upgrade_legacy, get_ai_provider, get_db
-from routers.coaching import _load_analysis, _utc
+from routers.common import get_ai_provider, get_db, load_analysis, upgrade_legacy, utc
 from schemas import AtsResponse, CareerResponse, QualityResponse, RewriteRequest, RewriteResponse
 
 router = APIRouter(tags=["resume tools"])
@@ -20,11 +19,11 @@ router = APIRouter(tags=["resume tools"])
 
 @router.get("/api/analyses/{analysis_id}/quality", response_model=QualityResponse)
 def get_quality(analysis_id: int, db: Session = Depends(get_db)) -> QualityResponse:
-    return QualityResponse(**quality_report(_load_analysis(db, analysis_id).resume_text))
+    return QualityResponse(**quality_report(load_analysis(db, analysis_id).resume_text))
 
 
 def _rewrite_response(row: BulletRewrite) -> RewriteResponse:
-    return RewriteResponse(id=row.id, created_at=_utc(row.created_at), **row.data)
+    return RewriteResponse(id=row.id, created_at=utc(row.created_at), **row.data)
 
 
 @router.post("/api/analyses/{analysis_id}/rewrites", response_model=RewriteResponse, status_code=201)
@@ -35,7 +34,7 @@ async def create_rewrite(
     settings: Settings = Depends(get_settings),
     provider: AIProvider | None = Depends(get_ai_provider),
 ) -> RewriteResponse:
-    analysis = _load_analysis(db, analysis_id)
+    analysis = load_analysis(db, analysis_id)
     bullet = body.bullet.strip()
     if not bullet:
         raise HTTPException(422, "Enter a bullet to rewrite.")
@@ -49,7 +48,7 @@ async def create_rewrite(
 
 @router.get("/api/analyses/{analysis_id}/rewrites", response_model=list[RewriteResponse])
 def list_rewrites(analysis_id: int, db: Session = Depends(get_db)) -> list[RewriteResponse]:
-    _load_analysis(db, analysis_id)
+    load_analysis(db, analysis_id)
     rows = db.scalars(
         select(BulletRewrite).where(BulletRewrite.analysis_id == analysis_id).order_by(BulletRewrite.id.desc())
     ).all()
@@ -58,12 +57,12 @@ def list_rewrites(analysis_id: int, db: Session = Depends(get_db)) -> list[Rewri
 
 @router.get("/api/analyses/{analysis_id}/ats", response_model=AtsResponse)
 def get_ats(analysis_id: int, db: Session = Depends(get_db)) -> AtsResponse:
-    analysis = _load_analysis(db, analysis_id)
-    profile = _upgrade_legacy(analysis.result).get("profile", {})
+    analysis = load_analysis(db, analysis_id)
+    profile = upgrade_legacy(analysis.result).get("profile", {})
     return AtsResponse(**ats_view(analysis.resume_text, analysis.jd_text, profile))
 
 
 @router.get("/api/analyses/{analysis_id}/career", response_model=CareerResponse, response_model_by_alias=True)
 def get_career(analysis_id: int, db: Session = Depends(get_db)) -> CareerResponse:
-    analysis = _load_analysis(db, analysis_id)
-    return CareerResponse(**career_view(analysis.resume_text, _upgrade_legacy(analysis.result)))
+    analysis = load_analysis(db, analysis_id)
+    return CareerResponse(**career_view(analysis.resume_text, upgrade_legacy(analysis.result)))

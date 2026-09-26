@@ -1,7 +1,8 @@
 import { useRef, useState } from 'react'
-import { FileText, Upload, ClipboardPaste, Search, FlaskConical } from 'lucide-react'
+import { FileText, ClipboardPaste, Search, FlaskConical } from 'lucide-react'
 import { MAX_TEXT_CHARS, createAnalysis, errorMessage, getSamples, isCancelled } from './api.js'
 import Working from './Working.jsx'
+import FileDrop from './FileDrop.jsx'
 import { announce } from './Announcer.jsx'
 import { TabList, TabPanel } from './Tabs.jsx'
 
@@ -104,7 +105,10 @@ export default function AnalyzeForm({ onResult }) {
   return (
     <form className="card form" onSubmit={handleSubmit}>
       <div className="form__head">
-        <h2>Analyze a resume against a job description</h2>
+        <div>
+          <h2>Analyze a resume</h2>
+          <p className="muted">Compare a resume with a job description. Everything shown comes from your two documents.</p>
+        </div>
         <button type="button" className="secondary" onClick={trySample} disabled={busy}>
           <FlaskConical size={16} aria-hidden="true" /> Try with sample data
         </button>
@@ -115,30 +119,38 @@ export default function AnalyzeForm({ onResult }) {
         </p>
       )}
 
-      <label className="field">
+      <div className="field">
         <span className="field__label">
-          <FileText size={16} aria-hidden="true" /> Resume <small>(PDF, DOCX or TXT, up to {MAX_MB} MB)</small>
+          <FileText size={16} aria-hidden="true" /> Resume
         </span>
-        <input
-          ref={resumeInput}
-          type="file"
+        <FileDrop
+          id="resume-file"
+          label={`Resume (PDF, DOCX or TXT, up to ${MAX_MB} MB)`}
+          hint={`PDF, DOCX or TXT, up to ${MAX_MB} MB`}
           accept={RESUME_TYPES}
-          onChange={(e) => {
-            setResumeFile(e.target.files[0] || null)
+          files={[resumeFile]}
+          inputRef={resumeInput}
+          onFiles={(list) => {
+            setResumeFile(list[0] || null)
             setUsingSample(false)
           }}
         />
-      </label>
+      </div>
 
-      <fieldset className="field">
-        <legend className="field__label">Job description</legend>
-        <TabList
-          id="jd"
-          label="How to add the job description"
-          tabs={[['paste', 'Paste text', ClipboardPaste], ['upload', 'Upload .txt', Upload]]}
-          value={jdMode}
-          onChange={setJdMode}
-        />
+      <div className="field" role="group" aria-labelledby="jd-label">
+        <div className="field__row">
+          <span className="field__label" id="jd-label">
+            <ClipboardPaste size={16} aria-hidden="true" /> Job description
+          </span>
+          <TabList
+            className="toggle"
+            id="jd"
+            label="How to add the job description"
+            tabs={[['paste', 'Paste text'], ['upload', 'Upload .txt']]}
+            value={jdMode}
+            onChange={setJdMode}
+          />
+        </div>
         <TabPanel id="jd" value={jdMode} className="field">
           {jdMode === 'paste' ? (
             <textarea
@@ -152,18 +164,20 @@ export default function AnalyzeForm({ onResult }) {
               }}
             />
           ) : (
-            <input
-              type="file"
+            <FileDrop
+              id="jd-file"
+              label="Job description file (.txt)"
+              hint="A .txt file"
               accept=".txt"
-              aria-label="Job description file (.txt)"
-              onChange={(e) => {
-                setJdFile(e.target.files[0] || null)
+              files={[jdFile]}
+              onFiles={(list) => {
+                setJdFile(list[0] || null)
                 setUsingSample(false)
               }}
             />
           )}
         </TabPanel>
-      </fieldset>
+      </div>
 
       {error && (
         <p className="form__error" role="alert">

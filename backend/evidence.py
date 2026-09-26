@@ -11,10 +11,18 @@ MIN_QUOTE_CHARS = 3
 MAX_QUOTE_CHARS = 400
 
 # AI output often "tidies" punctuation; treat these as equivalent when locating.
-_EQUIVALENT = str.maketrans({
-    "‘": "'", "’": "'", "“": '"', "”": '"',
-    "–": "-", "—": "-", "−": "-", "•": "•",
-})
+_EQUIVALENT = str.maketrans(
+    {
+        "‘": "'",
+        "’": "'",
+        "“": '"',
+        "”": '"',
+        "–": "-",
+        "—": "-",
+        "−": "-",
+        "•": "•",
+    }
+)
 
 
 def _canon(text: str) -> str:
@@ -47,7 +55,7 @@ def locate_quote(source: str, quote: str) -> tuple[int, int] | None:
 def verified_quote(source: str, quote: str) -> str | None:
     """Return the verbatim source text for `quote`, or None if it is not in `source`."""
     span = locate_quote(source, quote)
-    return source[span[0]:span[1]] if span else None
+    return source[span[0] : span[1]] if span else None
 
 
 def _loose(text: str) -> str:

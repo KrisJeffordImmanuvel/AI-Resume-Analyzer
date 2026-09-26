@@ -17,10 +17,52 @@ from skills import find_mentions, group_by_skill
 
 DATE_TOLERANCE_MONTHS = 2
 _WORD = re.compile(r"[A-Za-z][A-Za-z0-9+#.&-]*")
-_STOP = {"and", "the", "of", "at", "in", "for", "a", "an", "to", "present", "current", "now",
-         "jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "sept", "oct", "nov", "dec",
-         "january", "february", "march", "april", "june", "july", "august", "september", "october",
-         "november", "december", "full-time", "part-time", "yrs", "yr", "mos", "mo", "months", "years"}
+_STOP = {
+    "and",
+    "the",
+    "of",
+    "at",
+    "in",
+    "for",
+    "a",
+    "an",
+    "to",
+    "present",
+    "current",
+    "now",
+    "jan",
+    "feb",
+    "mar",
+    "apr",
+    "may",
+    "jun",
+    "jul",
+    "aug",
+    "sep",
+    "sept",
+    "oct",
+    "nov",
+    "dec",
+    "january",
+    "february",
+    "march",
+    "april",
+    "june",
+    "july",
+    "august",
+    "september",
+    "october",
+    "november",
+    "december",
+    "full-time",
+    "part-time",
+    "yrs",
+    "yr",
+    "mos",
+    "mo",
+    "months",
+    "years",
+}
 
 
 def _key_words(entry: dict) -> set[str]:
@@ -40,19 +82,19 @@ def _months_apart(a: tuple[int, int], b: tuple[int, int]) -> int:
     return abs((a[0] - b[0]) * 12 + (a[1] - b[1]))
 
 
-def _date_diff(r: dict | None, l: dict | None) -> str | None:
-    if not r or not l:
+def _date_diff(r: dict | None, li: dict | None) -> str | None:
+    if not r or not li:
         return None
     # Year-only dates can only be compared to the year.
-    precise = r["month_precision"] and l["month_precision"]
+    precise = r["month_precision"] and li["month_precision"]
     tol = DATE_TOLERANCE_MONTHS if precise else 11
     problems = []
-    if _months_apart(r["start"], l["start"]) > tol:
-        problems.append(f"start {r['text']} vs {l['text']}")
-    elif r["current"] != l["current"]:
+    if _months_apart(r["start"], li["start"]) > tol:
+        problems.append(f"start {r['text']} vs {li['text']}")
+    elif r["current"] != li["current"]:
         problems.append("one says current, the other has an end date")
-    elif not r["current"] and _months_apart(r["end"], l["end"]) > tol:
-        problems.append(f"end {r['text']} vs {l['text']}")
+    elif not r["current"] and _months_apart(r["end"], li["end"]) > tol:
+        problems.append(f"end {r['text']} vs {li['text']}")
     return "; ".join(problems) or None
 
 
@@ -60,31 +102,44 @@ def compare_roles(resume_roles: list[dict], linkedin_roles: list[dict], today: d
     rows, used = [], set()
     for r in resume_roles:
         best, best_score = None, 0.0
-        for i, l in enumerate(linkedin_roles):
+        for i, li in enumerate(linkedin_roles):
             if i in used:
                 continue
-            score = _similarity(_key_words(r), _key_words(l))
+            score = _similarity(_key_words(r), _key_words(li))
             if score > best_score:
                 best, best_score = i, score
         if best is not None and best_score >= 0.34:
             used.add(best)
-            l = linkedin_roles[best]
-            diff = _date_diff(_dates(r, today), _dates(l, today))
-            rows.append({"status": "date_mismatch" if diff else "consistent", "detail": diff,
-                         "resume": r["evidence"]["quote"], "linkedin": l["evidence"]["quote"]})
+            li = linkedin_roles[best]
+            diff = _date_diff(_dates(r, today), _dates(li, today))
+            rows.append(
+                {
+                    "status": "date_mismatch" if diff else "consistent",
+                    "detail": diff,
+                    "resume": r["evidence"]["quote"],
+                    "linkedin": li["evidence"]["quote"],
+                }
+            )
         else:
             rows.append({"status": "only_resume", "detail": None, "resume": r["evidence"]["quote"], "linkedin": None})
-    for i, l in enumerate(linkedin_roles):
+    for i, li in enumerate(linkedin_roles):
         if i not in used:
-            rows.append({"status": "only_linkedin", "detail": None, "resume": None, "linkedin": l["evidence"]["quote"]})
+            rows.append(
+                {"status": "only_linkedin", "detail": None, "resume": None, "linkedin": li["evidence"]["quote"]}
+            )
     order = {"date_mismatch": 0, "only_resume": 1, "only_linkedin": 2, "consistent": 3}
     rows.sort(key=lambda r: order[r["status"]])
     return rows
 
 
 def linkedin_check(
-    linkedin_text: str, resume_text: str, resume_profile: dict, resume_source: str,
-    provider: AIProvider | None, fallback_reason: str | None, today: date | None = None,
+    linkedin_text: str,
+    resume_text: str,
+    resume_profile: dict,
+    resume_source: str,
+    provider: AIProvider | None,
+    fallback_reason: str | None,
+    today: date | None = None,
 ) -> dict:
     today = today or date.today()
     text = clean_jd_text(linkedin_text)  # same normalisation and limits as pasted text elsewhere
@@ -95,16 +150,21 @@ def linkedin_check(
     skills = {
         "both": sorted(set(resume_skills) & set(li_skills)),
         "only_resume": sorted(set(resume_skills) - set(li_skills)),
-        "only_linkedin": [{"skill": s, "quote": li_skills[s][0].quote} for s in sorted(set(li_skills) - set(resume_skills))],
+        "only_linkedin": [
+            {"skill": s, "quote": li_skills[s][0].quote} for s in sorted(set(li_skills) - set(resume_skills))
+        ],
     }
     roles = compare_roles(resume_profile.get("experience", []), li["experience"], today)
     notices = list(li["notices"])
     if resume_source != li["source"]:
-        notices.append("The resume and LinkedIn text were read with different methods (AI vs pattern-based), "
-                       "so role matching may be less reliable. Re-run the analysis to align them.")
+        notices.append(
+            "The resume and LinkedIn text were read with different methods (AI vs pattern-based), "
+            "so role matching may be less reliable. Re-run the analysis to align them."
+        )
     if not li["experience"]:
-        notices.append("No dated roles were found in the pasted text. Paste your LinkedIn Experience section, "
-                       "including the dates.")
+        notices.append(
+            "No dated roles were found in the pasted text. Paste your LinkedIn Experience section, including the dates."
+        )
     return {
         "source": li["source"],
         "model": li["model"],

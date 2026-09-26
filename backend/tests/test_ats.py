@@ -54,4 +54,5 @@ def test_recent_role_falls_back_to_first_dated_line_when_profile_is_empty():
     checks = {c["label"]: c for c in ats_view(RESUME, JD, {"experience": []})["scan"]["checks"]}
     assert checks["Most recent role easy to find"]["passed"]
     assert checks["Most recent role easy to find"]["detail"] == (
-        "Software Engineer, Example Fintech Pvt Ltd (2022 - Present)")
+        "Software Engineer, Example Fintech Pvt Ltd (2022 - Present)"
+    )

@@ -11,7 +11,7 @@ import re
 import threading
 from typing import Protocol
 
-from skills import MAX_QUOTE_CHARS, _URL_OR_EMAIL, skill_index
+from skills import MAX_QUOTE_CHARS, URL_OR_EMAIL, skill_index
 
 
 class EmbedderUnavailable(Exception):
@@ -41,7 +41,7 @@ class SentenceTransformerEmbedder:
                 from sentence_transformers import SentenceTransformer
             except ImportError:
                 self._error = "sentence-transformers is not installed (run: pip install -r requirements.txt)."
-                raise EmbedderUnavailable(self._error)
+                raise EmbedderUnavailable(self._error) from None
             try:
                 self._model = SentenceTransformer(self.model_name, device="cpu")
             except Exception as exc:  # usually the first-time download failing
@@ -78,7 +78,7 @@ _WORD = re.compile(r"[A-Za-z]{2,}")
 
 def resume_units(text: str) -> list[str]:
     """Verbatim, reasonably short pieces of the resume to compare against."""
-    masked = _URL_OR_EMAIL.sub(" ", text)
+    masked = URL_OR_EMAIL.sub(" ", text)
     units = []
     for line in masked.split("\n"):
         line = line.strip()
@@ -90,8 +90,8 @@ def resume_units(text: str) -> list[str]:
     return units
 
 
-def _cosine(a: list[float], b: list[float]) -> float:
-    dot = sum(x * y for x, y in zip(a, b))
+def cosine(a: list[float], b: list[float]) -> float:
+    dot = sum(x * y for x, y in zip(a, b, strict=True))
     na = math.sqrt(sum(x * x for x in a))
     nb = math.sqrt(sum(y * y for y in b))
     return dot / (na * nb) if na and nb else 0.0
@@ -121,10 +121,10 @@ def best_matches(
         return {}
     queries = [skill_query(name) for name in skill_names]
     vectors = embedder.encode(queries + units)
-    query_vecs, unit_vecs = vectors[: len(queries)], vectors[len(queries):]
+    query_vecs, unit_vecs = vectors[: len(queries)], vectors[len(queries) :]
     out = {}
-    for name, qv in zip(skill_names, query_vecs):
-        scored = [(_cosine(qv, uv), unit) for uv, unit in zip(unit_vecs, units)]
+    for name, qv in zip(skill_names, query_vecs, strict=True):
+        scored = [(cosine(qv, uv), unit) for uv, unit in zip(unit_vecs, units, strict=True)]
         similarity, unit = max(scored)
         if similarity >= threshold:
             out[name] = (unit, round(similarity, 3))

@@ -20,8 +20,12 @@ def test_recent_analyses_newest_first_and_excludes_job_candidates(make_client):
         limited = client.get("/api/analyses?limit=1").json()
     assert [a["id"] for a in listing] == [second, first]
     assert listing[0] | {"created_at": None} == {
-        "id": second, "created_at": None, "resume_filename": "r.txt",
-        "jd_title": "Senior Backend Engineer - Example Payments", "score": 69, "extraction": "fallback",
+        "id": second,
+        "created_at": None,
+        "resume_filename": "r.txt",
+        "jd_title": "Senior Backend Engineer - Example Payments",
+        "score": 69,
+        "extraction": "fallback",
     }
     assert [a["id"] for a in limited] == [second]
 
@@ -36,15 +40,20 @@ def test_delete_removes_the_analysis_and_everything_generated_from_it(make_clien
         client.post(f"/api/analyses/{aid}/rewrites", json={"bullet": "- Built dashboards"})
         client.post(f"/api/analyses/{aid}/linkedin", json={"text": "Experience\nEngineer\nAcme\n2020 - 2021"})
         gone = client.delete(f"/api/analyses/{aid}")
-        after = [client.get(f"/api/analyses/{aid}").status_code,
-                 client.get(f"/api/analyses/{aid}/rewrites").status_code,
-                 client.post(f"/api/interview/questions/{qid}/answers", json={"answer": "x"}).status_code]
+        after = [
+            client.get(f"/api/analyses/{aid}").status_code,
+            client.get(f"/api/analyses/{aid}/rewrites").status_code,
+            client.post(f"/api/interview/questions/{qid}/answers", json={"answer": "x"}).status_code,
+        ]
         again = client.delete(f"/api/analyses/{aid}")
         kept = client.get(f"/api/analyses/{keep}").status_code
         session = client.app.state.session_factory()
         from models import BulletRewrite, ExternalCheck, InterviewAnswer, InterviewQuestion, InterviewSet, Roadmap
-        leftovers = sum(session.query(m).count() for m in
-                        (Roadmap, InterviewSet, InterviewQuestion, InterviewAnswer, BulletRewrite, ExternalCheck))
+
+        leftovers = sum(
+            session.query(m).count()
+            for m in (Roadmap, InterviewSet, InterviewQuestion, InterviewAnswer, BulletRewrite, ExternalCheck)
+        )
         session.close()
     assert gone.status_code == 204
     assert after == [404, 404, 404]

@@ -1,85 +1,40 @@
 """Job Seeker analysis endpoints: upload a resume + JD, get an evidence-backed fit report."""
 
-from datetime import timezone
-
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, Response, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
-from ai_provider import AIProvider, make_provider
+from ai_provider import AIProvider
 from analysis_service import run_analysis
 from config import Settings, get_settings
 from models import (
-    Analysis, BulletRewrite, ExternalCheck, InterviewAnswer, InterviewQuestion, InterviewSet, JobCandidate, Roadmap,
+    Analysis,
+    BulletRewrite,
+    ExternalCheck,
+    InterviewAnswer,
+    InterviewQuestion,
+    InterviewSet,
+    JobCandidate,
+    Roadmap,
 )
-from parsing import MAX_UPLOAD_BYTES, ParseError, clean_jd_text, extract_jd_file_text, extract_resume_text
+from parsing import ParseError, clean_jd_text, extract_jd_file_text, extract_resume_text
+from routers.common import get_ai_provider, get_db, get_embedder, read_limited, upgrade_legacy, utc
 from schemas import AnalysisResponse, AnalysisSummary
-from semantic import Embedder, shared_embedder
+from semantic import Embedder
 
 router = APIRouter(prefix="/api/analyses", tags=["analyses"])
 
 
-def get_db(request: Request):
-    session: Session = request.app.state.session_factory()
-    try:
-        yield session
-    finally:
-        session.close()
-
-
-def get_ai_provider(settings: Settings = Depends(get_settings)) -> AIProvider | None:
-    """None when AI is disabled. Tests override this with a fake provider."""
-    return make_provider(settings)
-
-
-def get_embedder(settings: Settings = Depends(get_settings)) -> Embedder | None:
-    """None when semantic matching is disabled. Tests override this with a fake."""
-    return shared_embedder(settings.semantic_model) if settings.semantic_matching else None
-
-
-_OLD_AI_OFF_NOTICE = "AI extraction is off because"
-
-
-def _upgrade_legacy(result: dict) -> dict:
-    """Older saved results in the current response shape."""
-    if "sources" in result:
-        notices = result["sources"].get("notices", [])
-        if any(n.startswith(_OLD_AI_OFF_NOTICE) for n in notices):
-            # Saved before AI being off stopped counting as a notice.
-            result = {**result, "sources": {**result["sources"],
-                                            "notices": [n for n in notices if not n.startswith(_OLD_AI_OFF_NOTICE)]}}
-        return result
-    result = dict(result)
-    result.pop("method", None)
-    result["sources"] = {
-        "extraction": "fallback", "model": None, "fallback_reason": None,
-        "semantic": "disabled", "semantic_threshold": None,
-        "notices": ["This analysis was saved by an earlier version (keyword matching only)."],
-    }
-    result["profile"] = {"skills": [], "experience": [], "education": [], "discarded": 0}
-    for item in result.get("matched", []):
-        item.setdefault("credit", 1.0)
-    return result
-
-
-async def _read_limited(upload: UploadFile) -> bytes:
-    # Read one byte past the limit so oversized files are detected without
-    # loading arbitrarily large uploads into memory.
-    return await upload.read(MAX_UPLOAD_BYTES + 1)
-
-
 def _to_response(row: Analysis) -> AnalysisResponse:
-    created_at = row.created_at
-    if created_at.tzinfo is None:  # SQLite drops the timezone; values are stored in UTC.
-        created_at = created_at.replace(tzinfo=timezone.utc)
+    created_at = utc(row.created_at)
     return AnalysisResponse(
         id=row.id,
         created_at=created_at,
         resume_filename=row.resume_filename,
         jd_source=row.jd_source,
         jd_filename=row.jd_filename,
-        **_upgrade_legacy(row.result),
+        **upgrade_legacy(row.result),
     )
 
 
@@ -154,9 +109,9 @@ async def create_analysis(
         raise HTTPException(422, "Provide the job description either as a .txt file or as pasted text (exactly one).")
 
     try:
-        resume_text = extract_resume_text(resume.filename or "", await _read_limited(resume))
+        resume_text = extract_resume_text(resume.filename or "", await read_limited(resume))
         if has_file:
-            job_text = extract_jd_file_text(jd_file.filename, await _read_limited(jd_file))
+            job_text = extract_jd_file_text(jd_file.filename, await read_limited(jd_file))
         else:
             job_text = clean_jd_text(jd_text)
     except ParseError as exc:
@@ -164,7 +119,10 @@ async def create_analysis(
 
     try:
         row = await analyze_and_save(
-            db, settings, provider, embedder,
+            db,
+            settings,
+            provider,
+            embedder,
             resume_filename=resume.filename or "resume",
             resume_text=resume_text,
             jd_text=job_text,
@@ -186,9 +144,7 @@ def get_analysis(analysis_id: int, db: Session = Depends(get_db)) -> AnalysisRes
 
 
 @router.get("", response_model=list[AnalysisSummary])
-def list_analyses(
-    limit: int = Query(20, ge=1, le=100), db: Session = Depends(get_db)
-) -> list[AnalysisSummary]:
+def list_analyses(limit: int = Query(20, ge=1, le=100), db: Session = Depends(get_db)) -> list[AnalysisSummary]:
     """Recent Job Seeker analyses, newest first (Job Provider candidates are listed under their job)."""
     in_jobs = select(JobCandidate.analysis_id)
     rows = db.scalars(
@@ -197,11 +153,17 @@ def list_analyses(
     out = []
     for row in rows:
         title = next((line.strip() for line in row.jd_text.split("\n") if line.strip()), "")
-        created_at = row.created_at if row.created_at.tzinfo else row.created_at.replace(tzinfo=timezone.utc)
-        out.append(AnalysisSummary(
-            id=row.id, created_at=created_at, resume_filename=row.resume_filename, jd_title=title[:120],
-            score=row.score, extraction=_upgrade_legacy(row.result)["sources"]["extraction"],
-        ))
+        created_at = utc(row.created_at)
+        out.append(
+            AnalysisSummary(
+                id=row.id,
+                created_at=created_at,
+                resume_filename=row.resume_filename,
+                jd_title=title[:120],
+                score=row.score,
+                extraction=upgrade_legacy(row.result)["sources"]["extraction"],
+            )
+        )
     return out
 
 

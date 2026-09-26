@@ -11,7 +11,7 @@ SAMPLES = pathlib.Path(__file__).resolve().parents[2] / "samples"
 
 def test_delete_all_removes_everything(make_client):
     resume = (SAMPLES / "sample_resume.txt").read_bytes()
-    jd = (SAMPLES / "sample_job_description.txt").read_text()
+    jd = (SAMPLES / "sample_job_description.txt").read_text(encoding="utf-8")
     with make_client() as client:
         a = client.post("/api/analyses", files={"resume": ("cv.txt", resume)}, data={"jd_text": jd}).json()
         client.post(f"/api/analyses/{a['id']}/roadmap")
