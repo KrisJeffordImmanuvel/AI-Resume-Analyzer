@@ -1,3 +1,5 @@
+<img src="frontend/public/favicon.svg" alt="Truescope logo" width="72">
+
 # Truescope
 
 Truescope is an evidence-grounded resume and job-description analysis app for

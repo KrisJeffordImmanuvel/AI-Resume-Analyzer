@@ -1,5 +1,6 @@
 import { Link, NavLink, Route, Routes, useLocation } from 'react-router'
-import { Briefcase, ScanSearch, User } from 'lucide-react'
+import { Briefcase, User } from 'lucide-react'
+import Logo from './Logo.jsx'
 import StatusIndicator from './StatusIndicator.jsx'
 import DataFooter from './DataFooter.jsx'
 import ErrorBoundary from './ErrorBoundary.jsx'
@@ -22,9 +23,7 @@ export default function App() {
       <header className="topbar">
         <div className="topbar__inner">
           <Link to="/" className="brand" aria-label="Truescope, start page">
-            <span className="brand__mark" aria-hidden="true">
-              <ScanSearch size={20} />
-            </span>
+            <Logo />
             <span className="brand__name">
               Truescope <span className="brand__suffix">Resume &amp; career intelligence</span>
             </span>
