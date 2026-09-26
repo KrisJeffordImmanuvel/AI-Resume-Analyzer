@@ -14,7 +14,6 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
-import models  # noqa: F401  (registers tables before init_db creates them)
 from config import get_settings
 from database import check_db, init_db, make_engine, make_session_factory
 from parsing import MAX_UPLOAD_BYTES
